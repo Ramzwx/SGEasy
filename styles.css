@@ -1,0 +1,554 @@
+:root { --po-table-font: 13px; }
+
+/* ======== ESTÉTICA GERAL DA TABELA ======== */
+table.po-table th,
+table.po-table td,
+table.po-table .po-table-column-cell,
+table.po-table .po-table-header-flex,
+table.po-table .po-table-body-ellipsis,
+table.po-table .po-table-header-ellipsis {
+  font-size: var(--po-table-font) !important;
+  line-height: 1.25 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Divisões escuras */
+table.po-table th,
+table.po-table td { border-right: 2px solid rgba(0,0,0,0.55) !important; }
+table.po-table th:last-child,
+table.po-table td:last-child { border-right: none !important; }
+
+th[data-po-table-column-name] { position: relative !important; }
+
+/* Layout da Tabela */
+table.po-table { border-collapse: separate !important; border-spacing: 0 !important; }
+html.po-ext-lock-enabled table.po-table { table-layout: fixed !important; }
+
+/* ======== RESIZER & GHOST GUIDE ======== */
+.po-col-resizer {
+  position: absolute; top: 0; right: -1px; width: 5px; height: 100%;
+  cursor: col-resize; user-select: none; z-index: 999;
+  background: #045b8f; border-left: 2px solid rgba(0,0,0,0.75);
+}
+.po-col-resizer:hover { background: rgba(0,0,0,0.28); }
+.po-col-resizer::after {
+  content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  font-size: 16px; color: rgba(255,255,255,0.9); pointer-events: none;
+}
+
+#poResizeGuide {
+  position: fixed; top: 0; left: 0; width: 2px; height: 100vh;
+  background-color: #045b8f; z-index: 2147483647;
+  pointer-events: none; display: none; box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+body.po-resizing,
+body.po-resizing * { cursor: col-resize !important; user-select: none !important; }
+
+/* ======== BOTÃO OCULTAR COLUNA ======== */
+.po-col-hide-btn {
+  position: absolute; top: 12px; right: 12px; width: 18px; height: 18px;
+  border-radius: 6px; display: grid; place-items: center; cursor: pointer; z-index: 1000;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.16);
+  color: #fff; font-size: 12px; user-select: none;
+}
+.po-col-hide-btn:hover { background: rgba(0,0,0,0.72); }
+.po-col-hidden { display: none !important; }
+
+/* ======== PAINEL FLUTUANTE ======== */
+#poFontPanel {
+  position: fixed;
+  left: 8px;
+  bottom: 50px;
+  z-index: 2147483647;
+
+  width: 390px;
+  height: 340px;
+
+  background: #045b8f;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 18px 10px 10px 10px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+
+  overflow: hidden;
+}
+
+#poFontPanel .panel-body {
+  height: 100%;
+  overflow: auto;
+  padding-top: 8px;
+}
+
+#poFontPanel .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+#poFontPanel .title { font-weight: 700; opacity: 0.95; }
+#poFontPanel input[type="range"] { width: 90%; }
+#poFontPanel .btn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+#poFontPanel .btn:hover { background: rgba(233, 4, 4, 0.18); }
+#poFontPanel .small { opacity: 0.85; font-size: 12px; }
+
+#poPanelMinBtn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.16);
+  user-select: none;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  z-index: 20;
+}
+#poPanelMinBtn:hover { background: rgba(255,255,255,0.18); }
+
+/* ✅ Minimizado realmente pequeno */
+#poFontPanel.minimized {
+  width: 40px !important;
+  height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  display: grid;
+  place-items: center;
+}
+
+#poFontPanel.minimized #poPanelMinBtn {
+  position: static;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+#poFontPanel.minimized .panel-body { display: none; }
+
+/* ✅ RESIZE HANDLES */
+.po-panel-resize-right{
+  position:absolute;
+  top:0;
+  right:0;
+  width:8px;
+  height:100%;
+  cursor:ew-resize;
+  z-index:30;
+  background:#02283d4b;
+  touch-action: none;
+}
+.po-panel-resize-right:hover{ background: rgba(255,255,255,0.10); }
+
+.po-panel-resize-top{
+  position:absolute;
+  top:0;
+  left:44px;
+  width:calc(100% - 44px);
+  height:6px;
+  cursor:ns-resize;
+  z-index:30;
+  background:#02283d4b;
+  touch-action: none;
+}
+.po-panel-resize-top:hover{ background: rgba(255,255,255,0.10); }
+
+#poFontPanel.minimized .po-panel-resize-right,
+#poFontPanel.minimized .po-panel-resize-top { display: none !important; }
+
+body.po-panel-resizing,
+body.po-panel-resizing * { user-select: none !important; }
+
+/* ======== Hidden list ======== */
+#poHiddenList {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 6px;
+}
+.po-hidden-item {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:4px 2px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.po-hidden-item:last-child { border-bottom: none; }
+.po-pill {
+  font-size: 13px;
+  opacity: .9;
+  max-width: 165px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   INDICADORES PREVISTO/REALIZADO
+   ========================= */
+.po-ext-aulas-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 16px;
+  vertical-align: middle;
+  height: 100%;
+}
+
+.po-ext-aulas-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 115px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  box-sizing: border-box;
+  transition: all 0.2s;
+  background: #fdfdfd;
+  color: #555;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+.po-ext-aulas-chip.filled {
+  border-color: #008f00 !important;
+  background: rgba(0, 160, 0, 0.12) !important;
+  color: #006000 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.po-ext-aulas-chip input {
+  pointer-events: none;
+  margin: 0;
+  transform: scale(1.2);
+}
+
+/* =========================
+   FIXES DE LAYOUT DO PAINEL
+   ========================= */
+mat-expansion-panel-header po-checkbox {
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.mat-expansion-panel-header-title,
+.mat-content {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* =========================
+   HIGHLIGHT AULA 1
+   ========================= */
+mat-expansion-panel.po-highlight-first {
+  background-color: rgba(4, 91, 143, 0.08) !important;
+  box-shadow: inset 5px 0 0 0 #045b8f !important;
+  border: none !important;
+}
+mat-expansion-panel.po-highlight-first > mat-expansion-panel-header {
+  background-color: transparent !important;
+  padding-left: 24px !important;
+}
+
+/* =========================
+   MASTER TOOLS (Barra Superior)
+   ========================= */
+#poMasterToolsContainer {
+  display: flex; align-items: center; padding: 10px 16px;
+  background: #fff; margin-bottom: 12px; border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.06); border: 1px solid #e0e0e0;
+  gap: 20px;
+}
+
+.po-master-label {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-family: Arial, sans-serif; font-size: 14px; color: #333; user-select: none;
+}
+.po-master-label:hover { opacity: 0.8; }
+.po-master-label input { width: 18px; height: 18px; accent-color: #045b8f; cursor: pointer; }
+.po-master-text { font-weight: 600; }
+
+.po-separator-vert { width: 1px; height: 20px; background: #ccc; }
+
+.po-master-btn {
+  color: #fff; border: none; padding: 8px 16px;
+  border-radius: 4px; font-size: 13px; font-weight: bold;
+  cursor: pointer; font-family: sans-serif; transition: background 0.2s;
+}
+.po-master-btn:active { transform: translateY(1px); }
+.po-master-btn:disabled { background-color: #ccc !important; cursor: not-allowed; }
+
+.po-btn-orange { background-color: #045b8f; }
+.po-btn-orange:hover { background-color: #045b8f; }
+#poMasterToolsContainer .po-btn-orange { margin-left: auto; }
+
+.po-btn-red { background-color: #c62828; }
+.po-btn-red:hover { background-color: #d32f2f; }
+
+.po-btn-green { background-color: #43a047; }
+.po-btn-green:hover { background-color: #2e7d32; }
+
+/* =========================
+   ARQUIVAMENTO DE TURMAS (SÓ EM .po-table)
+   ========================= */
+.po-archive-check-container {
+  position: absolute;
+  left: 19px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+}
+
+.po-archive-check {
+  width: 16px; height: 16px; cursor: pointer;
+  opacity: 0.3; transition: opacity 0.2s; accent-color: #045b8f;
+}
+
+tr:hover .po-archive-check,
+.po-archive-check:checked {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.po-table tr td:first-child { position: relative !important; }
+
+/* Lista de Lixeira no Painel */
+.po-archived-list-container {
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+  margin-top: 5px;
+  padding: 2px;
+}
+
+.po-archived-item-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 6px 4px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.2s;
+}
+
+.po-archived-item-row:hover { background: rgba(255,255,255,0.08); }
+
+.po-restore-check {
+  cursor: pointer;
+  accent-color: #4caf50;
+  transform: scale(1.1);
+}
+
+.po-archived-discipline {
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.po-archived-code {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #ddd;
+  margin-bottom: 2px;
+}
+
+.po-archived-course {
+  font-size: 12px;
+  color: #bbb;
+  font-style: italic;
+  line-height: 1.1;
+}
+
+/* =========================================================
+   ✅ SCROLLBARS DO PAINEL (COR + TAMANHO + ESPAÇAMENTO)
+   ========================================================= */
+:root{
+  --po-sb-size: 12px;
+  --po-sb-track: rgba(255,255,255,.18);
+  --po-sb-thumb: rgba(0,0,0,.70);
+  --po-sb-thumb-hover: rgba(0,0,0,.88);
+  --po-sb-gap: 14px;
+}
+
+#poFontPanel .panel-body{
+  padding-right: var(--po-sb-gap) !important;
+  scrollbar-gutter: stable !important;
+  overscroll-behavior: contain;
+}
+
+#poFontPanel #poHiddenList,
+#poFontPanel .po-archived-list-container{
+  box-sizing: border-box !important;
+  width: calc(100% - var(--po-sb-gap)) !important;
+  margin-right: var(--po-sb-gap) !important;
+  padding-right: 4px !important;
+}
+
+#poFontPanel .panel-body,
+#poFontPanel #poHiddenList,
+#poFontPanel .po-archived-list-container{
+  scrollbar-width: auto;
+  scrollbar-color: var(--po-sb-thumb) var(--po-sb-track);
+}
+
+#poFontPanel .panel-body::-webkit-scrollbar,
+#poFontPanel .panel-body *::-webkit-scrollbar{
+  width: var(--po-sb-size);
+  height: var(--po-sb-size);
+}
+
+#poFontPanel .panel-body::-webkit-scrollbar-track,
+#poFontPanel .panel-body *::-webkit-scrollbar-track{
+  background: var(--po-sb-track);
+  border-radius: 999px;
+}
+
+#poFontPanel .panel-body::-webkit-scrollbar-thumb,
+#poFontPanel .panel-body *::-webkit-scrollbar-thumb{
+  background: var(--po-sb-thumb);
+  border-radius: 999px;
+  border: 3px solid rgba(4, 91, 143, .85);
+}
+
+#poFontPanel .panel-body::-webkit-scrollbar-thumb:hover,
+#poFontPanel .panel-body *::-webkit-scrollbar-thumb:hover{
+  background: var(--po-sb-thumb-hover);
+}
+/* =========================================================
+   ✅ PAINEL NOTAS (Excel) — aparece só quando tabela de notas existir
+   canto inferior direito
+   ========================================================= */
+
+#poNotasPanel {
+  position: fixed;
+  right: 10px;
+  bottom: 50px;
+  z-index: 2147483647;
+
+  width: 360px;
+  max-width: min(420px, calc(100vw - 20px));
+  background: #1d2a33;
+  color: #fff;
+
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+
+#poNotasPanel .po-notas-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+#poNotasPanel .po-notas-title{
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .2px;
+}
+
+#poNotasPanel .po-notas-body{
+  padding: 10px;
+  display:flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#poNotasPanel .po-notas-row{
+  display:flex;
+  gap: 8px;
+}
+
+#poNotasPanel .po-notas-btn{
+  flex:1;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  color:#fff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+#poNotasPanel .po-notas-btn:hover{
+  background: rgba(255,255,255,0.14);
+}
+
+#poNotasPanel .po-notas-btn.green{ background: rgba(67,160,71,.18); border-color: rgba(67,160,71,.35); }
+#poNotasPanel .po-notas-btn.green:hover{ background: rgba(67,160,71,.26); }
+
+#poNotasPanel .po-notas-btn.orange{ background: rgba(255,152,0,.16); border-color: rgba(255,152,0,.32); }
+#poNotasPanel .po-notas-btn.orange:hover{ background: rgba(255,152,0,.24); }
+
+#poNotasPanel .po-notas-drop{
+  border: 1px dashed rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 10px;
+  text-align:center;
+  font-size: 12px;
+  opacity: .95;
+}
+
+#poNotasPanel .po-notas-drop.dragover{
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.42);
+}
+
+#poNotasPanel .po-notas-status{
+  font-size: 11px;
+  opacity: .85;
+  line-height: 1.25;
+  white-space: pre-wrap;
+}
+
+#poNotasPanel .po-notas-mini{
+  font-size: 11px;
+  opacity: .8;
+}
+
+#poNotasPanel .po-notas-close{
+  width: 30px;
+  height: 30px;
+  display:grid;
+  place-items:center;
+  border-radius: 10px;
+  cursor:pointer;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  user-select:none;
+  font-weight: 900;
+}
+#poNotasPanel .po-notas-close:hover{ background: rgba(255,255,255,0.14); }

@@ -1,0 +1,20 @@
+{
+  "name": "SGEasy",
+  "description": "Ajustes visuais para o Portal do Instrutor SENAI FIEMG",
+  "version": "1.1.1",
+  "manifest_version": 3,
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://portaldocente.fiemg.com.br/*"],
+      "css": ["styles.css"],
+      "js": ["lib/xlsx.full.min.js", "conteudo.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -40,8 +40,8 @@ html.po-ext-lock-enabled table.po-table { table-layout: fixed !important; }
 
 #poResizeGuide {
   position: fixed; top: 0; left: 0; width: 2px; height: 100vh;
-  background-color: #045b8f; z-index: 2147483647;
-  pointer-events: none; display: none; box-shadow: 0 0 4px rgba(0,0,0,0.3);
+  background-color: #045c8f39; z-index: 2147483647;
+  pointer-events: none; display: none; box-shadow: 0 0 4px rgba(0, 0, 0, 0);
 }
 
 body.po-resizing,

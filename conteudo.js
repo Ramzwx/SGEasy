@@ -72,6 +72,25 @@
     localStorage.setItem(key, JSON.stringify(value));
   }
 
+  function __poInjectPopupZFixOnce() {
+    // Ensures PO-UI popups stay above SGEasy header controls (hide button/resizer)
+    if (document.getElementById("poPopupZFixStyles")) return;
+    const st = document.createElement("style");
+    st.id = "poPopupZFixStyles";
+    st.textContent = `
+      /* SGEasy: keep PO-UI popups above column tools/resizers */
+      po-popup, .po-popup { z-index: 2147483647 !important; }
+      po-popup .po-popup { z-index: 2147483647 !important; position: fixed !important; }
+      .po-popup-container, .po-popup-arrow { z-index: 2147483647 !important; }
+      /* In some screens PO-UI uses Angular CDK overlays */
+      .cdk-overlay-container, .cdk-overlay-pane { z-index: 2147483647 !important; }
+    `;
+    document.head.appendChild(st);
+  }
+
+  __poInjectPopupZFixOnce();
+
+
   function loadWidths() {
     return loadJSON(STORAGE_KEY_WIDTHS, {});
   }
@@ -1159,8 +1178,13 @@
   function __poGetNotasContext(table) {
     const root = __poGetTableScopeRoot(table) || document;
 
-    let text = "";
+    let turma = "";
+    let disciplina = "";
 
+    // ---------------------------
+    // 1) Tenta ler contexto por textos/labels (quando a tela tem "Turma:" / "Disciplina:")
+    // ---------------------------
+    let text = "";
     try {
       const tRect = table.getBoundingClientRect();
       const candidates = Array.from(
@@ -1192,8 +1216,121 @@
       text.match(/disciplina\s*[:\-]?\s*([^\n\r]{3,80})/i) ||
       text.match(/componente\s*curricular\s*[:\-]?\s*([^\n\r]{3,80})/i);
 
-    const turma = turmaMatch ? (turmaMatch[1] || "").trim() : "";
-    let disciplina = discMatch ? (discMatch[1] || "").trim() : "";
+    turma = turmaMatch ? (turmaMatch[1] || "").trim() : "";
+    disciplina = discMatch ? (discMatch[1] || "").trim() : "";
+
+    // ---------------------------
+    // 2) Fallback (se a tela NÃO tem labels):
+    //    Procura "células" acima da tabela com:
+    //    - código de turma no padrão AI-EME-01-M-26-13040
+    //    - nome da disciplina (texto longo com letras)
+    // ---------------------------
+    if (!turma || !disciplina) {
+      try {
+        const tRect = table.getBoundingClientRect();
+
+        const isVisible = (el) => {
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          if (r.width <= 0 || r.height <= 0) return false;
+          // offsetParent null em elementos invisíveis (não é perfeito, mas ajuda)
+          if (el.offsetParent === null && getComputedStyle(el).position !== "fixed") return false;
+          return true;
+        };
+
+        const getText = (el) =>
+          (el.innerText || el.textContent || "")
+            .replace(/\s+/g, " ")
+            .replace(/\u00A0/g, " ")
+            .trim();
+
+        // tenta pegar principalmente as "cells" do PO-UI
+        const cells = Array.from(
+          root.querySelectorAll(".po-table-column-cell.po-table-body-ellipsis, .po-table-column-cell")
+        );
+
+        const nearCells = [];
+        for (const el of cells) {
+          if (!isVisible(el)) continue;
+          const r = el.getBoundingClientRect();
+
+          // apenas elementos ACIMA da tabela de notas e relativamente próximos
+          const above = r.bottom <= tRect.top + 40;
+          const closeEnough = r.bottom >= tRect.top - 900; // janela maior pra telas variadas
+
+          if (!above || !closeEnough) continue;
+
+          const s = getText(el);
+          if (!s || s.length > 140) continue;
+
+          nearCells.push({ s, r });
+        }
+
+        // ordena do mais perto do topo da tabela (mais provável ser contexto)
+        nearCells.sort((a, b) => b.r.bottom - a.r.bottom);
+
+        // regex do código de turma (exemplo: AI-EME-01-M-26-13040)
+        const turmaReStrict = /([A-Z]{2,}-[A-Z]{2,}-\d{2}-[A-Z]-\d{2}-\d{3,})/;
+        // fallback mais permissivo (caso mude um pouco o padrão)
+        const turmaReLoose = /([A-Z]{2,}(?:-[A-Z0-9]{1,}){3,})/;
+
+        if (!turma) {
+          for (const it of nearCells) {
+            const m = it.s.match(turmaReStrict) || it.s.match(turmaReLoose);
+            if (m && m[1]) {
+              turma = m[1].trim();
+              break;
+            }
+          }
+        }
+
+        if (!disciplina) {
+          const isMostlyText = (s) => {
+            if (!s) return false;
+            if (turmaReStrict.test(s) || turmaReLoose.test(s)) return false;
+            if (/^\d+[.,]?\d*$/.test(s)) return false; // só número
+            // precisa ter letras
+            const letters = (s.match(/[A-Za-zÀ-ÿ]/g) || []).length;
+            if (letters < 6) return false;
+            // evita nomes muito curtos tipo "M1"
+            if (s.length < 8) return false;
+            return true;
+          };
+
+          const scoreDisc = (s) => {
+            const words = s.split(/\s+/).filter(Boolean);
+            let score = 0;
+            score += Math.min(s.length, 80);
+            score += words.length >= 2 ? 25 : 0;
+            score += /[À-ÿ]/.test(s) ? 5 : 0;
+            // se tem palavra típica (ajuda no seu caso)
+            score += /fundamentos|comunica|informa|matem|eletric|mec[aâ]nic|automa/i.test(s) ? 10 : 0;
+            return score;
+          };
+
+          let best = "";
+          let bestScore = -1;
+
+          for (const it of nearCells) {
+            const s = it.s;
+            if (!isMostlyText(s)) continue;
+            const sc = scoreDisc(s);
+            if (sc > bestScore) {
+              bestScore = sc;
+              best = s;
+            }
+          }
+
+          disciplina = best || "";
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // limpeza final
+    turma = (turma || "").trim();
+    disciplina = (disciplina || "").trim();
 
     // corta "Curso" ou "Turma" colado
     disciplina = disciplina.replace(/\bcurso\b.*$/i, "").replace(/\bturma\b.*$/i, "").trim();
@@ -1629,19 +1766,24 @@
     });
   }
 
+  // ===========================================================
+  // ✅ CHAVE (NOME/MATRÍCULA/RA) — versão robusta (SEM acento, pois _norm remove)
+  // ===========================================================
+  const __poKeyCandidatesNorm = ["matricula", "ra", "registro", "aluno", "nome", "discente", "estudante", "aprendiz"];
+
   function __poFindKeyColumnIndex(headersNorm) {
-    const candidates = ["matricula", "matrícula", "ra", "registro", "aluno", "nome", "discente"];
     for (let i = 0; i < headersNorm.length; i++) {
       const h = headersNorm[i];
       if (!h) continue;
-      if (candidates.includes(h) || candidates.some((k) => h.includes(k))) return i;
+      if (__poKeyCandidatesNorm.includes(h) || __poKeyCandidatesNorm.some((k) => h.includes(k))) return i;
     }
     return 0;
   }
 
   function __poFindKeyColumnIndexInSchema(schema) {
-    const candidates = ["matricula", "matrícula", "ra", "registro", "aluno", "nome", "discente"];
-    const idx = schema.findIndex((c) => candidates.includes(c.label) || candidates.some((k) => (c.label || "").includes(k)));
+    const idx = schema.findIndex(
+      (c) => __poKeyCandidatesNorm.includes(c.label) || __poKeyCandidatesNorm.some((k) => (c.label || "").includes(k))
+    );
     return idx >= 0 ? idx : 0;
   }
 
@@ -1678,302 +1820,515 @@
     else input.value = v;
   }
 
-// ✅ Normaliza números vindos do Excel / CSV para o formato que os campos numéricos do PO-UI aceitam
-// - "15,23"     -> "15.23"
-// - "1.234,56"  -> "1234.56"
-// - "1,234.56"  -> "1234.56"
-// - remove espaços
-// ===========================================================
-// ✅ NÚMEROS (PT-BR): mantém vírgula como separador decimal
-//    Ex.: "15,23" -> "15,23" | "15.23" -> "15,23" | "1.234,56" -> "1234,56"
-// ===========================================================
-const __poWait = (ms) => new Promise(r => setTimeout(r, ms));
+  // ===========================================================
+  // ✅ NÚMEROS (PT-BR): mantém vírgula como separador decimal
+  //    Ex.: "15,23" -> "15,23" | "15.23" -> "15,23" | "1.234,56" -> "1234,56"
+  // ===========================================================
+  const __poWait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function __poNormalizeNumericStringBR(raw) {
-  let s = (raw ?? "").toString().trim();
-  if (!s) return "";
+  function __poNormalizeNumericStringBR(raw) {
+    let s = (raw ?? "").toString().trim();
+    if (!s) return "";
 
-  // remove espaços e tudo que não for dígito/separador/sinal
-  s = s.replace(/\s+/g, "");
-  let sign = "";
-  if (s[0] === "-" || s[0] === "+") {
-    sign = s[0];
-    s = s.slice(1);
+    // remove espaços e tudo que não for dígito/separador/sinal
+    s = s.replace(/\s+/g, "");
+    let sign = "";
+    if (s[0] === "-" || s[0] === "+") {
+      sign = s[0];
+      s = s.slice(1);
+    }
+
+    // mantém somente dígitos e separadores (.,)
+    s = s.replace(/[^\d.,]/g, "");
+    if (!s) return sign ? sign + "0" : "0";
+
+    const lastComma = s.lastIndexOf(",");
+    const lastDot = s.lastIndexOf(".");
+
+    let decSep = null;
+
+    if (lastComma >= 0 && lastDot >= 0) {
+      // se ambos existem, o último normalmente é o decimal
+      decSep = lastComma > lastDot ? "," : ".";
+    } else if (lastComma >= 0) {
+      // só vírgula: para notas, assume decimal
+      decSep = ",";
+    } else if (lastDot >= 0) {
+      // só ponto: pode ser decimal OU milhar.
+      // se houver vários pontos e o último tiver 3 dígitos, assume milhar.
+      const parts = s.split(".");
+      const last = parts[parts.length - 1] || "";
+      const dotCount = parts.length - 1;
+      if (dotCount >= 1 && last.length === 3 && parts.slice(0, -1).every((p) => p.length > 0 && p.length <= 3)) {
+        decSep = null; // milhar
+      } else {
+        decSep = ".";
+      }
+    }
+
+    let intPart = s;
+    let fracPart = "";
+
+    if (decSep) {
+      const idx = decSep === "," ? lastComma : lastDot;
+      intPart = s.slice(0, idx);
+      fracPart = s.slice(idx + 1);
+    }
+
+    // remove separadores de milhar do inteiro
+    intPart = intPart.replace(/[.,]/g, "");
+    // fração só dígitos
+    fracPart = fracPart.replace(/[^\d]/g, "");
+
+    // evita vazio
+    if (!intPart) intPart = "0";
+
+    let out = sign + intPart;
+    if (fracPart !== "") out += "," + fracPart;
+
+    return out;
   }
 
-  // mantém somente dígitos e separadores (.,)
-  s = s.replace(/[^\d.,]/g, "");
-  if (!s) return sign ? sign + "0" : "0";
+  function __poParseLooseNumber(raw) {
+    const s0 = (raw ?? "").toString().trim();
+    if (!s0) return NaN;
 
-  const lastComma = s.lastIndexOf(",");
-  const lastDot = s.lastIndexOf(".");
+    let s = s0.replace(/\s+/g, "").replace(/[^\d.,\-+]/g, "");
+    if (!s) return NaN;
 
-  let decSep = null;
+    const lastComma = s.lastIndexOf(",");
+    const lastDot = s.lastIndexOf(".");
 
-  if (lastComma >= 0 && lastDot >= 0) {
-    // se ambos existem, o último normalmente é o decimal
-    decSep = lastComma > lastDot ? "," : ".";
-  } else if (lastComma >= 0) {
-    // só vírgula: para notas, assume decimal
-    decSep = ",";
-  } else if (lastDot >= 0) {
-    // só ponto: pode ser decimal OU milhar.
-    // se houver vários pontos e o último tiver 3 dígitos, assume milhar.
-    const parts = s.split(".");
-    const last = parts[parts.length - 1] || "";
-    const dotCount = parts.length - 1;
-    if (dotCount >= 1 && last.length === 3 && parts.slice(0, -1).every(p => p.length > 0 && p.length <= 3)) {
-      decSep = null; // milhar
+    let decSep = null;
+    if (lastComma >= 0 && lastDot >= 0) decSep = lastComma > lastDot ? "," : ".";
+    else if (lastComma >= 0) decSep = ",";
+    else if (lastDot >= 0) decSep = ".";
+
+    if (decSep === ",") {
+      s = s.replace(/\./g, "");
+      s = s.replace(",", ".");
+    } else if (decSep === ".") {
+      s = s.replace(/,/g, "");
     } else {
-      decSep = ".";
+      s = s.replace(/[.,]/g, "");
+    }
+
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function __poNumericEquivalent(a, b) {
+    const na = __poParseLooseNumber(a);
+    const nb = __poParseLooseNumber(b);
+    if (!Number.isFinite(na) || !Number.isFinite(nb)) return false;
+    return Math.abs(na - nb) < 1e-6;
+  }
+
+  function __poLooksNumericLike(raw) {
+    const s = (raw ?? "").toString().trim();
+    if (!s) return false;
+    return /^[+-]?[0-9][0-9\s.,]*$/.test(s) && /\d/.test(s);
+  }
+
+    // ===========================================================
+  // ✅ EXCEL IMPORT — edição "estilo TAB" para o portal registrar mudança
+  // ===========================================================
+  function __poExcelDispatchInput(input, dataStr) {
+    if (!input) return;
+    try {
+      input.dispatchEvent(
+        new InputEvent("beforeinput", {
+          bubbles: true,
+          composed: true,
+          cancelable: true,
+          inputType: "insertReplacementText",
+          data: dataStr ?? "",
+        })
+      );
+    } catch {}
+    try {
+      input.dispatchEvent(
+        new InputEvent("input", {
+          bubbles: true,
+          composed: true,
+          cancelable: true,
+          inputType: "insertReplacementText",
+          data: dataStr ?? "",
+        })
+      );
+    } catch {
+      input.dispatchEvent(new Event("input", { bubbles: true }));
     }
   }
 
-  let intPart = s;
-  let fracPart = "";
-
-  if (decSep) {
-    const idx = decSep === "," ? lastComma : lastDot;
-    intPart = s.slice(0, idx);
-    fracPart = s.slice(idx + 1);
+  function __poExcelDispatchChangeBlur(input) {
+    if (!input) return;
+    try { input.dispatchEvent(new Event("change", { bubbles: true })); } catch {}
+    try { input.dispatchEvent(new Event("focusout", { bubbles: true })); } catch {}
+    try { input.dispatchEvent(new Event("blur", { bubbles: true })); } catch {}
+    try { input.blur(); } catch {}
   }
 
-  // remove separadores de milhar do inteiro
-  intPart = intPart.replace(/[.,]/g, "");
-  // fração só dígitos
-  fracPart = fracPart.replace(/[^\d]/g, "");
+  function __poExcelIsMarkedChanged(td, host) {
+    const candidates = [
+      host,
+      td,
+      td?.querySelector?.("po-decimal, po-number, po-input, po-field-container"),
+      td?.closest?.("tr"),
+    ].filter(Boolean);
 
-  // evita vazio
-  if (!intPart) intPart = "0";
-
-  let out = sign + intPart;
-  if (fracPart !== "") out += "," + fracPart;
-
-  return out;
-}
-
-function __poParseLooseNumber(raw) {
-  const s0 = (raw ?? "").toString().trim();
-  if (!s0) return NaN;
-
-  let s = s0.replace(/\s+/g, "").replace(/[^\d.,\-+]/g, "");
-  if (!s) return NaN;
-
-  const lastComma = s.lastIndexOf(",");
-  const lastDot = s.lastIndexOf(".");
-
-  let decSep = null;
-  if (lastComma >= 0 && lastDot >= 0) decSep = lastComma > lastDot ? "," : ".";
-  else if (lastComma >= 0) decSep = ",";
-  else if (lastDot >= 0) decSep = ".";
-
-  if (decSep === ",") {
-    s = s.replace(/\./g, "");
-    s = s.replace(",", ".");
-  } else if (decSep === ".") {
-    s = s.replace(/,/g, "");
-  } else {
-    s = s.replace(/[.,]/g, "");
+    return candidates.some((el) => {
+      const cl = el.classList;
+      if (!cl) return false;
+      return cl.contains("border-shadow-input") || cl.contains("ng-dirty");
+    });
   }
 
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : NaN;
-}
+  async function __poExcelWaitForMark(td, host, timeoutMs = 850) {
+    const t0 = performance.now();
+    while (performance.now() - t0 < timeoutMs) {
+      if (__poExcelIsMarkedChanged(td, host)) return true;
+      await wait(25);
+    }
+    return false;
+  }
 
-function __poNumericEquivalent(a, b) {
-  const na = __poParseLooseNumber(a);
-  const nb = __poParseLooseNumber(b);
-  if (!Number.isFinite(na) || !Number.isFinite(nb)) return false;
-  return Math.abs(na - nb) < 1e-6;
-}
+  function __poExcelFindInputNearTd(td) {
+    if (!td) return null;
+    return (
+      td.querySelector("input, textarea") ||
+      td.querySelector("po-input input, po-number input, po-decimal input, po-field-container input") ||
+      td.querySelector(".po-field-container input")
+    );
+  }
 
+  async function __poExcelOpenEditor(td) {
+    if (!td || !td.isConnected) return null;
 
-function __poLooksNumericLike(raw) {
-  const s = (raw ?? "").toString().trim();
-  if (!s) return false;
-  return /^[+-]?[0-9][0-9\s.,]*$/.test(s) && /\d/.test(s);
-}
+    try { td.scrollIntoView({ block: "nearest", inline: "center" }); } catch {}
 
-  async function __poSetCellValue(td, value) {
-    if (!td) return false;
+    // clique + dblclick (muitos grids só entram em edição assim)
+    try { td.click(); } catch {}
+    try { td.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); } catch {}
 
+    await wait(35);
+
+    let input =
+      __poExcelFindInputNearTd(td) ||
+      (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")
+        ? document.activeElement
+        : null) ||
+      document.querySelector(".cdk-overlay-container input, .cdk-overlay-container textarea") ||
+      document.querySelector(".po-popup-content input, .po-popup-content textarea, .po-modal input, .po-modal textarea");
+
+    if (!input) {
+      // tentativa extra
+      await wait(60);
+      input = __poExcelFindInputNearTd(td) || (document.activeElement && document.activeElement.tagName === "INPUT" ? document.activeElement : null);
+    }
+
+    if (!input) return null;
+    if (input.disabled || input.readOnly) return null;
+
+    try { input.focus({ preventScroll: true }); } catch { try { input.focus(); } catch {} }
+
+    const host =
+      input.closest("po-decimal, po-number, po-input, po-textarea, po-field-container") ||
+      td.querySelector("po-decimal, po-number, po-input, po-field-container") ||
+      td;
+
+    return { input, host };
+  }
+
+  async function __poExcelMoveFocusToTd(td) {
+    if (!td || !td.isConnected) return false;
+
+    try { td.scrollIntoView({ block: "nearest", inline: "center" }); } catch {}
+    try { td.click(); } catch {}
+    try { td.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); } catch {}
+
+    await wait(25);
+
+    const input = __poExcelFindInputNearTd(td) || (document.activeElement && document.activeElement.tagName === "INPUT" ? document.activeElement : null);
+    if (input && !input.disabled && !input.readOnly) {
+      try { input.focus({ preventScroll: true }); } catch { try { input.focus(); } catch {} }
+      return true;
+    }
+
+    return false;
+  }
+
+  function __poExcelNormalizeForCompare(raw, input) {
+    const wantRaw = (raw ?? "").toString().trim();
+
+    const inputMode = (input?.getAttribute?.("inputmode") || "").toLowerCase();
+    const isNumericInput =
+      input &&
+      (__poLooksNumericLike(wantRaw) &&
+        (input.type === "number" || inputMode === "numeric" || inputMode === "decimal" || inputMode === "tel" || /[.,]/.test(wantRaw)));
+
+    const want = isNumericInput ? __poNormalizeNumericStringBR(wantRaw) : wantRaw;
+    return { wantRaw, want, isNumericInput };
+  }
+
+  async function __poSetCellValue(td, value, opts = {}) {
+    // opts.nextTd: td para focar logo após escrever (simula TAB de verdade)
+    const nextTd = opts.nextTd || null;
+
+    if (!td || !td.isConnected) return false;
+
+    const opened = await __poExcelOpenEditor(td);
+    if (!opened) return false;
+
+    const { input, host } = opened;
+
+    const { want, isNumericInput } = __poExcelNormalizeForCompare(value, input);
+
+    // ⚠️ comparação deve ser com o "valor do input" (model do Angular), não com o texto do td
+    const beforeInput = (input.value ?? "").toString().trim();
+
+    const changedByModel =
+      isNumericInput ? !__poNumericEquivalent(beforeInput, want) : _norm(beforeInput) !== _norm(want);
+
+    // limpa (seleciona tudo) + seta
     try {
-      td.scrollIntoView({ block: "nearest", inline: "center" });
+      input.select && input.select();
     } catch {}
 
-    const want = (value ?? "").toString().trim();
-
-let input =
-  td.querySelector("input, textarea") ||
-  td.querySelector("po-input input, po-number input, po-decimal input, po-field-container input") ||
-  td.querySelector(".po-field-container input");
-
-if (!input) {
-  // tenta ativar edição
-  td.click();
-  td.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
-  await wait(60);
-
-  input =
-    td.querySelector("input, textarea") ||
-    td.querySelector("po-input input, po-number input, po-decimal input, po-field-container input") ||
-    document.querySelector(".po-popup-content input, .po-modal input, .cdk-overlay-container input");
-}
-
-if (!input) return false;
-
-
-// ✅ Ajuste de decimais (PT-BR) + escrita robusta em inputs mascarados do PO-UI
-const inputMode = (input.getAttribute("inputmode") || "").toLowerCase();
-const numericLike = __poLooksNumericLike(want) && (
-  input.type === "number" ||
-  inputMode === "numeric" ||
-  inputMode === "decimal" ||
-  inputMode === "tel" ||
-  input.getAttribute("data-po-number") === "true" ||
-  /[.,]/.test(want)
-);
-
-let v = want;
-if (numericLike) v = __poNormalizeNumericStringBR(want);
-
-// 1) tentativa padrão (set native value + eventos)
-input.focus();
-__poSetNativeValue(input, "");
-input.dispatchEvent(new Event("input", { bubbles: true }));
-await __poWait(0);
-
-__poSetNativeValue(input, v);
-input.dispatchEvent(new Event("input", { bubbles: true }));
-input.dispatchEvent(new Event("change", { bubbles: true }));
-input.dispatchEvent(new Event("blur", { bubbles: true }));
-
-// 2) fallback: se era número e o componente “comeu” a vírgula/ponto (ex.: 15,23 virando 1523,00),
-// digita caractere por caractere para o mascaramento capturar corretamente.
-if (numericLike) {
-  const got = (input.value ?? "").toString();
-  if (!__poNumericEquivalent(got, v)) {
     __poSetNativeValue(input, "");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    await __poWait(0);
+    __poExcelDispatchInput(input, "");
 
-    for (const ch of v) {
-      __poSetNativeValue(input, (input.value ?? "") + ch);
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      await __poWait(8);
+    await wait(0);
+
+    // tenta set direto primeiro
+    __poSetNativeValue(input, want);
+    __poExcelDispatchInput(input, want);
+
+    // commit 1: blur + (foco no próximo td, para simular TAB)
+    __poExcelDispatchChangeBlur(input);
+
+    if (nextTd) {
+      await __poExcelMoveFocusToTd(nextTd);
+    } else {
+      // click fora pra fechar editor
+      try { document.body.click(); } catch {}
+      await wait(0);
     }
 
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    input.dispatchEvent(new Event("blur", { bubbles: true }));
+    // aguarda um pouco (o portal costuma validar com debounce)
+    await wait(40);
+
+    // valida
+    const after = (input.value ?? "").toString().trim();
+    const okValue = isNumericInput ? __poNumericEquivalent(after, want) : _norm(after) === _norm(want);
+
+    // Se realmente mudou (no model), exigimos "mark" (border-shadow-input ou ng-dirty)
+    let okMark = true;
+    if (changedByModel) {
+      okMark = await __poExcelWaitForMark(td, host, 900);
+    }
+
+    if (okValue && okMark) return true;
+
+    // =====================
+    // RETRY: digitação "humana" mais lenta + commit reforçado
+    // =====================
+    const opened2 = await __poExcelOpenEditor(td);
+    if (!opened2) return false;
+
+    const input2 = opened2.input;
+    const host2 = opened2.host;
+
+    const before2 = (input2.value ?? "").toString().trim();
+    const changed2 = isNumericInput ? !__poNumericEquivalent(before2, want) : _norm(before2) !== _norm(want);
+
+    // limpa
+    try { input2.select && input2.select(); } catch {}
+    __poSetNativeValue(input2, "");
+    __poExcelDispatchInput(input2, "");
+    await wait(10);
+
+    // digita char a char (máscaras)
+    let acc = "";
+    for (const ch of String(want)) {
+      acc += ch;
+      __poSetNativeValue(input2, acc);
+      __poExcelDispatchInput(input2, ch);
+      await wait(12);
+    }
+
+    __poExcelDispatchChangeBlur(input2);
+
+    if (nextTd) {
+      await __poExcelMoveFocusToTd(nextTd);
+    } else {
+      try { document.body.click(); } catch {}
+      await wait(0);
+    }
+
+    await wait(70);
+
+    const after2 = (input2.value ?? "").toString().trim();
+    const okValue2 = isNumericInput ? __poNumericEquivalent(after2, want) : _norm(after2) === _norm(want);
+
+    let okMark2 = true;
+    if (changed2) {
+      okMark2 = await __poExcelWaitForMark(td, host2, 1200);
+    }
+
+    return !!(okValue2 && okMark2);
   }
-}
-// alguns componentes precisam do Enter para "confirmar"
-    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true }));
-    input.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", code: "Enter", bubbles: true }));
 
-    return true;
-  }
+  // =========================================================
+  // ✅ APPLY NOTAS — versão robusta (corrige o erro de schema/td undefined)
+  // =========================================================
+    async function __poApplyNotasToTable(imported, setStatusFn) {
+    try {
+      const table = __poGetNotasTable();
+      if (!table) return { ok: false, msg: "Tabela de notas não encontrada nesta tela." };
 
-  async function __poApplyNotasToTable(imported, setStatusFn) {
-    const table = __poGetNotasTable();
-    if (!table) return { ok: false, msg: "Tabela de notas não encontrada nesta tela." };
+      // ✅ garante que todas as linhas estejam carregadas antes de mapear
+      if (setStatusFn) setStatusFn("Carregando todas as linhas da tabela...");
+      await __poExpandAllRowsForNotasTable(table, null, null);
 
-    // ✅ garante que todas as linhas estejam carregadas antes de mapear
-    if (setStatusFn) setStatusFn("Carregando todas as linhas da tabela...");
-    await __poExpandAllRowsForNotasTable(table, null, null);
+      const schema = __poGetTableSchema(table);
+      if (!schema) return { ok: false, msg: "Não consegui ler a estrutura (thead) da tabela de notas." };
 
-    const schema = __poGetTableSchema(table);
-    if (!schema) return { ok: false, msg: "Não consegui ler a estrutura (thead) da tabela de notas." };
+      const headersNorm = (imported.headers || []).map((h) => _norm(h));
+      const keyIdxImported = __poFindKeyColumnIndex(headersNorm);
+      const keyIdxSchema = __poFindKeyColumnIndexInSchema(schema);
 
-    const headersNorm = (imported.headers || []).map((h) => _norm(h));
-    const keyIdxImported = __poFindKeyColumnIndex(headersNorm);
-    const keyIdxSchema = __poFindKeyColumnIndexInSchema(schema);
+      const schemaNames = schema.map((c) => c.label || c.key || "");
+      const colMap = new Map(); // importedIdx => schemaIdx
 
-    const schemaNames = schema.map((c) => c.label || c.key || "");
-    const colMap = new Map(); // importedIdx => schemaIdx
+      for (let i = 0; i < headersNorm.length; i++) {
+        if (i === keyIdxImported) continue;
+        const h = headersNorm[i];
+        if (!h) continue;
 
-    for (let i = 0; i < headersNorm.length; i++) {
-      if (i === keyIdxImported) continue;
-      const h = headersNorm[i];
-      if (!h) continue;
-
-      let si = schemaNames.findIndex((n) => n === h || (n && h && (n.includes(h) || h.includes(n))));
-      if (si < 0) {
-        si = schemaNames.findIndex((n) => (n || "").replace(/\s/g, "") === h.replace(/\s/g, ""));
+        let si = schemaNames.findIndex((n) => n === h || (n && h && (n.includes(h) || h.includes(n))));
+        if (si < 0) si = schemaNames.findIndex((n) => (n || "").replace(/\s/g, "") === h.replace(/\s/g, ""));
+        if (si >= 0) colMap.set(i, si);
       }
-      if (si >= 0) colMap.set(i, si);
-    }
 
-    if (colMap.size === 0) {
-      return {
-        ok: false,
-        msg:
-          "Não consegui mapear colunas do arquivo para a tabela.\n" +
-          "Dica: mantenha os títulos da primeira linha iguais aos títulos da tela (ex.: N1, N2, Média, etc.).",
-      };
-    }
-
-    const rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
-
-    let totalValidKeys = 0;
-    let matchedRows = 0;
-    let writtenCells = 0;
-    let failedCells = 0;
-
-    for (let r = 0; r < imported.data.length; r++) {
-      const row = imported.data[r] || [];
-      const keyRaw = (row[keyIdxImported] ?? "").toString();
-      const key = _norm(keyRaw);
-      if (!key) continue;
-
-      totalValidKeys++;
-
-      let tr = rowMap.get(key);
-      if (!tr) {
-        const looseKey = __poFindRowKeyLoose(rowMap, key);
-        if (looseKey) tr = rowMap.get(looseKey);
+      if (colMap.size === 0) {
+        return {
+          ok: false,
+          msg:
+            "Não consegui mapear colunas do arquivo para a tabela.\n" +
+            "Dica: mantenha os títulos da primeira linha iguais aos títulos da tela (ex.: N1, N2, Média, etc.).",
+        };
       }
-      if (!tr) continue;
 
-      matchedRows++;
-      const tds = Array.from(tr.querySelectorAll("td"));
+      // ✅ ordena pelas colunas da TABELA (simula tabulação esquerda->direita)
+      const colPairs = Array.from(colMap.entries())
+        .map(([impColIdx, schemaIdx]) => {
+          const col = schema[schemaIdx];
+          return {
+            impColIdx,
+            schemaIdx,
+            tdIdx: col && typeof col.idx === "number" ? col.idx : 999999,
+          };
+        })
+        .filter((p) => Number.isFinite(p.tdIdx))
+        .sort((a, b) => a.tdIdx - b.tdIdx);
 
-      for (const [impColIdx, schemaIdx] of colMap.entries()) {
-        const col = schema[schemaIdx];
-        const td = tds[col.idx];
-        if (!td) {
-          failedCells++;
-          continue;
+      let rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
+
+      let totalValidKeys = 0;
+      let matchedRows = 0;
+      let writtenCells = 0;
+      let failedCells = 0;
+
+      for (let r = 0; r < imported.data.length; r++) {
+        const row = imported.data[r] || [];
+        const keyRaw = (row[keyIdxImported] ?? "").toString();
+        const key = _norm(keyRaw);
+        if (!key) continue;
+
+        totalValidKeys++;
+
+        let tr = rowMap.get(key);
+        if (!tr) {
+          const looseKey = __poFindRowKeyLoose(rowMap, key);
+          if (looseKey) tr = rowMap.get(looseKey);
         }
 
-        const val = (row[impColIdx] ?? "").toString();
-        const ok = await __poSetCellValue(td, val);
-        if (ok) writtenCells++;
-        else failedCells++;
+        // se o DOM reciclou (virtual scroll), refaz o mapa e tenta de novo
+        if (tr && !tr.isConnected) tr = null;
+        if (!tr) {
+          rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
+          tr = rowMap.get(key);
+          if (!tr) {
+            const looseKey2 = __poFindRowKeyLoose(rowMap, key);
+            if (looseKey2) tr = rowMap.get(looseKey2);
+          }
+        }
 
-        // pequeno respiro p/ UI
-        if ((writtenCells + failedCells) % 12 === 0) await wait(10);
+        if (!tr) continue;
+
+        matchedRows++;
+
+        try {
+          tr.scrollIntoView({ block: "center" });
+        } catch {}
+        await wait(25);
+
+        // sempre pega os tds "ao vivo" (reduz efeito de DOM reciclado)
+        let tds = Array.from(tr.querySelectorAll("td"));
+        if (!tds.length) continue;
+
+        for (let pi = 0; pi < colPairs.length; pi++) {
+          const { impColIdx, schemaIdx } = colPairs[pi];
+          const col = schema[schemaIdx];
+          const td = tds[col.idx];
+
+          if (!td) {
+            failedCells++;
+            continue;
+          }
+
+          // nextTd para simular TAB real (foco muda, blur confirma)
+          const nextPair = colPairs[pi + 1];
+          const nextTd = nextPair ? tds[schema[nextPair.schemaIdx].idx] : null;
+
+          const val = (row[impColIdx] ?? "").toString();
+
+          const ok = await __poSetCellValue(td, val, { nextTd });
+
+          if (ok) writtenCells++;
+          else failedCells++;
+
+          // pequeno respiro p/ UI
+          if ((writtenCells + failedCells) % 10 === 0) await wait(20);
+        }
+
+        // fecha edição no fim da linha (garante commit do último campo)
+        try { document.body.click(); } catch {}
+        await wait(30);
+
+        if (setStatusFn && r % 6 === 0) {
+          setStatusFn(
+            `Importando...\nLinhas: ${r + 1}/${imported.data.length}\nEncontradas na tela: ${matchedRows}\nCélulas escritas: ${writtenCells}\nFalhas: ${failedCells}`
+          );
+          await wait(10);
+        }
       }
 
-      if (setStatusFn && r % 8 === 0) {
-        setStatusFn(
-          `Importando...\nLinhas: ${r + 1}/${imported.data.length}\nEncontradas na tela: ${matchedRows}\nCélulas escritas: ${writtenCells}\nFalhas: ${failedCells}`
-        );
-        await wait(10);
-      }
+      return {
+        ok: true,
+        msg:
+          `Import concluído ✅\n` +
+          `Linhas no arquivo: ${imported.data.length}\n` +
+          `Linhas com chave válida: ${totalValidKeys}\n` +
+          `Linhas encontradas na tela: ${matchedRows}\n` +
+          `Células escritas: ${writtenCells}\n` +
+          `Falhas: ${failedCells}\n\n` +
+          `Obs: falha aqui significa: não conseguiu confirmar (dirty/highlight) ou não encontrou input editável.`,
+      };
+    } catch (e) {
+      return { ok: false, msg: "Erro ao importar: " + (e?.message || e) };
     }
-
-    return {
-      ok: true,
-      msg:
-        `Import concluído ✅\n` +
-        `Linhas no arquivo: ${imported.data.length}\n` +
-        `Linhas com chave válida: ${totalValidKeys}\n` +
-        `Linhas encontradas na tela: ${matchedRows}\n` +
-        `Células escritas: ${writtenCells}\n` +
-        `Falhas: ${failedCells}\n\n` +
-        `Obs: colunas não editáveis na tela podem falhar.`,
-    };
   }
 
   function __poRemoveNotasPanel() {
@@ -2421,7 +2776,7 @@ if (numericLike) {
             <div class="small" id="poLockState">—</div>
             <button class="btn" id="poLockToggle" title="Travado/Original">🔓</button>
           </div>
-          
+
         </div>
 
         <div id="poHiddenList"></div>

@@ -1,6 +1,6 @@
 (() => {
   // =======================
-  // CONFIG & CONSTANTS 
+  // CONFIG & CONSTANTS oto teste
   // =======================
   const TABLE_SELECTOR = "table.po-table";
   const TH_SELECTOR = 'th[data-po-table-column-name]';

@@ -753,18 +753,7 @@
         bestScore = s;
         best = t;
       }
-    }
-
-    if (best) {
-      console.log(
-        "[SGEasy] Notas: candidatas =",
-        candidates.length,
-        "melhor score =",
-        bestScore,
-        "headers =",
-        __poGetHeadersFromTable(best)
-      );
-    }
+    }   
 
     if (!best || bestScore < 8) return null;
     return best;
@@ -3199,6 +3188,17 @@
     if (textareas.length > 0) return textareas[0].value || "";
     return "";
   }
+
+  // ✅ NOVO: pega o texto do REALIZADO (2º textarea do painel)
+  function getRealizadoText(panel) {
+    const textareas = panel.querySelectorAll("textarea.po-textarea, textarea");
+    // padrão esperado: [0]=Previsto, [1]=Realizado
+    if (textareas.length >= 2) return textareas[1].value || "";
+    // fallback (caso a página em algum estado só tenha 1 textarea)
+    if (textareas.length === 1) return textareas[0].value || "";
+    return "";
+  }
+
   function injectTextIntoPanel(panel, text) {
     const textareas = panel.querySelectorAll("textarea.po-textarea, textarea");
     if (textareas.length > 0) {
@@ -3212,6 +3212,26 @@
     }
     return false;
   }
+
+  // ✅ NOVO: injeta texto no REALIZADO (2º textarea do painel)
+  function injectRealizadoIntoPanel(panel, text) {
+    const textareas = panel.querySelectorAll("textarea.po-textarea, textarea");
+
+    let target = null;
+    // padrão esperado: [0]=Previsto, [1]=Realizado
+    if (textareas.length >= 2) target = textareas[1];
+    else if (textareas.length === 1) target = textareas[0]; // fallback
+
+    if (!target) return false;
+
+    if (target.value === text) return false;
+    target.value = text;
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+    target.dispatchEvent(new Event("blur", { bubbles: true }));
+    return true;
+  }
+
   function clearContentFromPanel(panel) {
     const textareas = panel.querySelectorAll("textarea.po-textarea, textarea");
     let changed = false;
@@ -3226,6 +3246,7 @@
     });
     return changed;
   }
+
   function getDateFromPanel(panel) {
     const header = panel.querySelector("mat-expansion-panel-header");
     if (!header) return null;
@@ -3264,11 +3285,13 @@
       const isSource = index === 0 || currentDate === null || currentDate !== lastDate;
 
       if (isSource) {
-        activeText = getPrevistoText(panel);
+        // ✅ ALTERADO: fonte agora é o REALIZADO (2º textarea)
+        activeText = getRealizadoText(panel);
         if (currentDate) lastDate = currentDate;
       } else {
         if (activeText !== null) {
-          const changed = injectTextIntoPanel(panel, activeText);
+          // ✅ ALTERADO: destino agora é o REALIZADO (2º textarea)
+          const changed = injectRealizadoIntoPanel(panel, activeText);
           if (changed) {
             count++;
             updateAulasIndicators(panel);
@@ -3344,7 +3367,8 @@
 
       <div class="po-separator-vert"></div>
 
-      <button id="poCascadeBtn" class="po-master-btn po-btn-orange" title="Copia texto da 1ª aula do dia para as demais aulas DO MESMO DIA.">
+      <button id="poCascadeBtn" class="po-master-btn po-btn-orange"
+        title="Copia o texto REALIZADO da 1ª aula do dia para as demais aulas DO MESMO DIA (no campo REALIZADO).">
         Replicar em Cascata (Dia)
       </button>
 
@@ -3406,6 +3430,7 @@
     firstPanel.parentElement.insertBefore(container, firstPanel);
   }
 
+
   // =======================
   // INIT
   // =======================
@@ -3465,4 +3490,300 @@
   });
 
   obs.observe(document.documentElement, { childList: true, subtree: true });
+})(); 
+
+(() => {
+  "use strict";
+
+  // Evita duplicar se o script for injetado mais de uma vez
+  if (window.__PO_FREQ_INVERT_LOADED__) return;
+  window.__PO_FREQ_INVERT_LOADED__ = true;
+
+  // =========================
+  // CONFIG
+  // =========================
+  const BTN_ID = "poFreqInvertBtn";
+  const ANCHOR_WRAP_CLASS = "po-ext-geminadas-wrap";
+  const ANCHOR_TEXT = "Marcar aulas geminadas";
+
+  const DIA_OVERRIDE = null; // ex: "23/01/2026" ou null = auto
+  const DELAY_MS = 10;
+
+  // Retry “curto” pra pegar renderizações tardias do Angular
+  const BOOT_RETRY_EVERY_MS = 400;
+  const BOOT_RETRY_MAX_TRIES = 40; // ~16s
+
+  // =========================
+  // HELPERS
+  // =========================
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function isVisible(el) {
+    if (!el || !el.isConnected) return false;
+    const st = window.getComputedStyle(el);
+    if (st.display === "none" || st.visibility === "hidden" || st.opacity === "0") return false;
+    return el.getClientRects().length > 0;
+  }
+
+  function detectDiaFromTable() {
+    if (DIA_OVERRIDE) return DIA_OVERRIDE;
+
+    const firstRow = document.querySelector("tr.tr-data");
+    if (!firstRow) return null;
+
+    const td = firstRow.querySelector('td[data-cy^="x"]');
+    if (!td) return null;
+
+    const cy = td.getAttribute("data-cy") || "";
+    const m = cy.match(/^x(\d{2}\/\d{2}\/\d{4})/);
+    return m ? m[1] : null;
+  }
+
+  // Pega candidatos do switch geminadas (visíveis primeiro; se não tiver visível, pega qualquer um)
+  function findBestAnchorPoSwitch() {
+    const tableRow = document.querySelector("tr.tr-data");
+    if (!tableRow) return null;
+
+    const tableTop = tableRow.getBoundingClientRect().top;
+
+    const candidates = [];
+
+    // 1) aria-label
+    document
+      .querySelectorAll(`.po-switch-toggle[aria-label="${ANCHOR_TEXT}"]`)
+      .forEach((t) => {
+        const poSwitch = t.closest(".po-switch");
+        if (poSwitch) candidates.push(poSwitch);
+      });
+
+    // 2) texto do label (fallback)
+    document
+      .querySelectorAll(".po-switch .po-switch-label .po-label")
+      .forEach((lb) => {
+        const txt = (lb.textContent || "").trim();
+        if (txt === ANCHOR_TEXT) {
+          const poSwitch = lb.closest(".po-switch");
+          if (poSwitch) candidates.push(poSwitch);
+        }
+      });
+
+    if (!candidates.length) return null;
+
+    // separa visíveis
+    const visible = candidates.filter(isVisible);
+    const pool = visible.length ? visible : candidates;
+
+    // escolhe o mais próximo verticalmente da tabela
+    let best = pool[0];
+    let bestDist = Math.abs(best.getBoundingClientRect().top - tableTop);
+
+    for (const c of pool.slice(1)) {
+      const dist = Math.abs(c.getBoundingClientRect().top - tableTop);
+      if (dist < bestDist) {
+        best = c;
+        bestDist = dist;
+      }
+    }
+
+    return best;
+  }
+
+  function ensureAnchorWrapper(poSwitch) {
+    let wrap = poSwitch.closest(`.${ANCHOR_WRAP_CLASS}`);
+    if (wrap) return wrap;
+
+    wrap = document.createElement("div");
+    wrap.className = ANCHOR_WRAP_CLASS;
+
+    poSwitch.parentNode.insertBefore(wrap, poSwitch);
+    wrap.appendChild(poSwitch);
+    return wrap;
+  }
+
+  // =========================
+  // INVERSÃO (igual seu teste)
+  // =========================
+  function invertDay(DIA) {
+    const cells = Array.from(document.querySelectorAll(`td[data-cy^="x${DIA}"]`));
+    const switches = cells.flatMap((td) =>
+      Array.from(td.querySelectorAll('div[role="switch"].po-switch-container[aria-disabled="false"]'))
+    );
+
+    const fireClick = (el) => {
+      try {
+        el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+        el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true }));
+      } catch (_) {
+        el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
+        el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
+      }
+      el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+    };
+
+    let i = 0;
+    const step = () => {
+      if (i >= switches.length) return;
+      fireClick(switches[i]);
+      i++;
+      setTimeout(step, DELAY_MS);
+    };
+    step();
+
+    return switches.length;
+  }
+
+  // =========================
+  // CONTEXTO (só na Frequência)
+  // =========================
+  function getFrequencyContext() {
+    const dia = detectDiaFromTable();
+    if (!dia) return { ok: false };
+
+    const anchor = findBestAnchorPoSwitch();
+    if (!anchor) return { ok: false };
+
+    return { ok: true, dia, anchor };
+  }
+
+  // =========================
+  // BOTÃO
+  // =========================
+  function ensureButton() {
+    let btn = document.getElementById(BTN_ID);
+    if (btn) return btn;
+
+    btn = document.createElement("button");
+    btn.id = BTN_ID;
+    btn.type = "button";
+    btn.className = "po-master-btn po-btn-orange po-freq-invert-btn";
+    btn.textContent = "Inverter Presenças";
+    btn.title = "Inverte os toggles de presença/ausência do dia detectado na tabela.";
+
+    btn.addEventListener("click", async () => {
+      const ctx = getFrequencyContext();
+      if (!ctx.ok) return;
+
+      const old = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = `Invertendo (${ctx.dia})...`;
+
+      const n = invertDay(ctx.dia);
+      if (!n) {
+        btn.textContent = `Nada encontrado (${ctx.dia})`;
+        await sleep(800);
+      } else {
+        await sleep(650);
+      }
+
+      btn.textContent = old;
+      btn.disabled = false;
+    });
+
+    return btn;
+  }
+
+  function removeButtonIfExists() {
+    const btn = document.getElementById(BTN_ID);
+    if (btn) btn.remove();
+  }
+
+  function placeOrRemoveButton() {
+    const ctx = getFrequencyContext();
+
+    if (!ctx.ok) {
+      removeButtonIfExists();
+      return false;
+    }
+
+    const btn = ensureButton();
+    const wrap = ensureAnchorWrapper(ctx.anchor);
+    if (!wrap.contains(btn)) wrap.appendChild(btn);
+
+    return true;
+  }
+
+  // =========================
+  // SCHEDULER (debounce + boot retry)
+  // =========================
+  let debounceT = null;
+  function schedule(reason = "") {
+    clearTimeout(debounceT);
+    debounceT = setTimeout(() => {
+      placeOrRemoveButton();
+    }, 120);
+  }
+
+  function bootRetry() {
+    let tries = 0;
+    const tick = () => {
+      tries++;
+      const mounted = placeOrRemoveButton();
+      if (mounted) return; // achou contexto e montou ✅
+      if (tries < BOOT_RETRY_MAX_TRIES) setTimeout(tick, BOOT_RETRY_EVERY_MS);
+    };
+    tick();
+  }
+
+  // =========================
+  // SPA hooks (rota/aba)
+  // =========================
+  function hookHistory() {
+    const _push = history.pushState;
+    const _rep = history.replaceState;
+
+    history.pushState = function () {
+      const r = _push.apply(this, arguments);
+      schedule("pushState");
+      bootRetry();
+      return r;
+    };
+    history.replaceState = function () {
+      const r = _rep.apply(this, arguments);
+      schedule("replaceState");
+      bootRetry();
+      return r;
+    };
+
+    window.addEventListener("popstate", () => {
+      schedule("popstate");
+      bootRetry();
+    });
+  }
+
+  // =========================
+  // INIT
+  // =========================
+  // 1) tenta já
+  placeOrRemoveButton();
+
+  // 2) retry curto pra quando a aba Frequência ainda está renderizando
+  bootRetry();
+
+  // 3) observa DOM (Angular)
+  const mo = new MutationObserver(() => schedule("mutation"));
+  mo.observe(document.documentElement, { childList: true, subtree: true });
+
+  // 4) qualquer clique (troca de aba normalmente é click)
+  document.addEventListener("click", () => {
+    schedule("click");
+    bootRetry();
+  }, true);
+
+  // 5) hooks de rota SPA
+  hookHistory();
+
+  // 6) quando a página termina de carregar
+  window.addEventListener("load", () => {
+    schedule("load");
+    bootRetry();
+  }, { passive: true });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      schedule("visibility");
+      bootRetry();
+    }
+  });
 })();
+
+

@@ -3272,7 +3272,7 @@
     if (selectedPanels.length < 2) {
       alert("Selecione pelo menos 2 aulas para replicar em cascata.");
       statusBtn.disabled = false;
-      statusBtn.textContent = "Replicar em Cascata (Dia)";
+      statusBtn.textContent = "Replicar Realizados";
       return;
     }
 
@@ -3303,7 +3303,7 @@
     statusBtn.textContent = `${count} réplicas realizadas!`;
     setTimeout(() => {
       statusBtn.disabled = false;
-      statusBtn.textContent = "Replicar em Cascata (Dia)";
+      statusBtn.textContent = "Replicar Realizados";
     }, 2000);
   }
 
@@ -3369,7 +3369,7 @@
 
       <button id="poCascadeBtn" class="po-master-btn po-btn-orange"
         title="Copia o texto REALIZADO da 1ª aula do dia para as demais aulas DO MESMO DIA (no campo REALIZADO).">
-        Replicar em Cascata (Dia)
+        Replicar Realizados
       </button>
 
       <button id="poClearBtn" class="po-master-btn po-btn-red" title="Apaga texto de Previsto e Realizado dos selecionados.">

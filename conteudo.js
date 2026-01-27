@@ -272,8 +272,8 @@
 // =======================
 // AJUSTES (tune fino)
 // =======================
-const SEARCH_TRIGGER_DELAY_MS = 220; // atraso antes de clicar em "Pesquisar"
-const DOM_QUIET_MS = 250;            // quanto tempo sem mudanças no DOM = "estável"
+const SEARCH_TRIGGER_DELAY_MS = 450; // atraso antes de clicar em "Pesquisar"
+const DOM_QUIET_MS = 450;            // quanto tempo sem mudanças no DOM = "estável"
 const MAX_WAIT_MS = 8000;            // timeout geral
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

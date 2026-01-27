@@ -17,6 +17,9 @@
   const STORAGE_KEY_LOCK = "po_layout_lock_v1";
   const STORAGE_KEY_BOXW = "po_box_fixed_w_v1";
 
+    // ✅ AUTO FILTRO (data de hoje + pesquisar ao carregar)
+  const STORAGE_KEY_AUTO_FILTRO = "po_auto_filtro_hoje_v1";
+
   // ARQUIVAMENTO & LOADER (DIÁRIO / LIXEIRA)
   const STORAGE_KEY_ARCHIVED = "po_archived_data_v3";
   const STORAGE_KEY_EXPAND = "po_auto_expand_mode";
@@ -146,8 +149,233 @@
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   // =======================
+  // ✅ AUTO FILTRO (HOJE + PESQUISAR)
+  // =======================
+
+  function loadAutoFiltro() {
+    return localStorage.getItem(STORAGE_KEY_AUTO_FILTRO) === "1";
+  }
+  function saveAutoFiltro(v) {
+    localStorage.setItem(STORAGE_KEY_AUTO_FILTRO, v ? "1" : "0");
+  }
+
+  function __poIsVisible(el) {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return false;
+    // offsetParent null em alguns casos de fixed; ainda assim ajuda
+    if (el.offsetParent === null && getComputedStyle(el).position !== "fixed") return false;
+    return true;
+  }
+
+  function updateAutoFiltroUI() {
+    const label = document.getElementById("poAutoFiltroState");
+    const btn = document.getElementById("poAutoFiltroToggle");
+    const on = loadAutoFiltro();
+
+    if (label) label.textContent = on ? "Auto Filtro Hoje: ON" : "Auto Filtro Hoje: OFF";
+    if (btn) btn.textContent = on ? "🟢" : "⚪";
+  }
+
+  let __poAutoFiltroRunning = false;
+  async function __poRunAutoFiltroHoje(opts = {}) {
+    const silent = !!opts.silent;
+
+    if (__poAutoFiltroRunning) return false;
+    __poAutoFiltroRunning = true;
+
+    const log = (...a) => console.log("[SGEasy][AutoFiltro]", ...a);
+
+    try {
+      // 1) abre "Filtros" se estiver fechado
+      const filtrosBtn = [...document.querySelectorAll("button.po-accordion-item-header-button")]
+        .find(b => {
+          const aria = (b.getAttribute("aria-label") || "").trim();
+          const txt  = (b.textContent || "").trim();
+          return aria === "Filtros" || txt.includes("Filtros");
+        });
+
+      if (!filtrosBtn) {
+        if (!silent) alert("Não achei o botão do accordion 'Filtros'.");
+        log("❌ Não achei 'Filtros'.");
+        return false;
+      }
+
+      const expanded = filtrosBtn.getAttribute("aria-expanded") === "true";
+      if (!expanded) {
+        filtrosBtn.click();
+        await wait(180); // tempo pro Angular/POUI abrir
+      }
+
+      // 2) espera input aparecer
+      let input = null;
+      for (let i = 0; i < 25; i++) {
+        input = document.querySelector('input.po-input.po-datepicker[name="classDate"]');
+        if (input && __poIsVisible(input)) break;
+        await wait(120);
+      }
+
+      if (!input) {
+        if (!silent) alert("Não achei o input do datepicker (name='classDate').");
+        log("❌ Não achei input classDate.");
+        return false;
+      }
+
+      // 3) data de hoje dd/mm/aaaa
+      const d = new Date();
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const today = `${dd}/${mm}/${yyyy}`;
+
+      // 4) preenche com setter nativo + eventos
+      input.focus();
+
+      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      if (nativeSetter) nativeSetter.call(input, today);
+      else input.value = today;
+
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(new Event("blur", { bubbles: true }));
+
+      await wait(80);
+
+      // 5) clica Pesquisar (preferir visível)
+      let btnPesquisar = [...document.querySelectorAll("button.po-button")]
+        .find(b => (b.textContent || "").trim() === "Pesquisar" && __poIsVisible(b));
+
+      // fallback: às vezes o texto está em span interno
+      if (!btnPesquisar) {
+        btnPesquisar = [...document.querySelectorAll("button, po-button")]
+          .find(b => (b.textContent || "").trim() === "Pesquisar" && __poIsVisible(b));
+      }
+
+      if (!btnPesquisar) {
+        if (!silent) alert("Não achei o botão 'Pesquisar'.");
+        log("❌ Não achei 'Pesquisar'.");
+        return false;
+      }
+
+      btnPesquisar.click();
+      log("✅ Filtros OK, data:", today, "| Pesquisar clicado.");
+      return true;
+    } catch (e) {
+      log("❌ Erro:", e);
+      if (!silent) alert("Erro no Auto Filtro: " + (e?.message || e));
+      return false;
+    } finally {
+      __poAutoFiltroRunning = false;
+    }
+  }
+
+// =======================
+// AJUSTES (tune fino)
+// =======================
+const SEARCH_TRIGGER_DELAY_MS = 220; // atraso antes de clicar em "Pesquisar"
+const DOM_QUIET_MS = 250;            // quanto tempo sem mudanças no DOM = "estável"
+const MAX_WAIT_MS = 8000;            // timeout geral
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function nextFrame(times = 1) {
+  for (let i = 0; i < times; i++) {
+    await new Promise(r => requestAnimationFrame(r));
+  }
+}
+
+function setNativeValue(el, value) {
+  // ajuda bastante em sites Angular/React que “perdem” value sem eventos
+  el.focus();
+  el.value = value;
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+  el.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: "Enter" }));
+}
+
+async function waitFor(predicate, { timeout = MAX_WAIT_MS, interval = 50 } = {}) {
+  const t0 = performance.now();
+  while (performance.now() - t0 < timeout) {
+    if (predicate()) return true;
+    await sleep(interval);
+  }
+  return false;
+}
+
+async function waitForDomQuiet(targetEl, { quietMs = DOM_QUIET_MS, timeout = MAX_WAIT_MS } = {}) {
+  if (!targetEl) return true;
+
+  let lastChange = performance.now();
+  const obs = new MutationObserver(() => { lastChange = performance.now(); });
+  obs.observe(targetEl, { childList: true, subtree: true, attributes: true, characterData: true });
+
+  const ok = await waitFor(() => (performance.now() - lastChange) >= quietMs, { timeout, interval: 50 });
+  obs.disconnect();
+  return ok;
+}
+
+  // (opcional) se o seu portal tiver um "loading" / spinner, use aqui:
+function isLoading() {
+  // TROQUE pelos seletores reais do seu portal, se existirem:
+  return !!document.querySelector(".po-loading-overlay, .po-page-loading, .po-overlay, .po-loading");
+}
+
+async function triggerSearchSafely({ inputEl, searchBtnEl, resultsContainerEl }) {
+  // 1) deixa o framework “absorver” o valor
+  await nextFrame(2);
+
+  // 2) pequeno atraso para reduzir a corrida (race condition)
+  await sleep(SEARCH_TRIGGER_DELAY_MS);
+
+  // 3) dispara a busca
+  searchBtnEl.click();
+
+  // 4) espera carregamento terminar (se existir indicador)
+  await waitFor(() => !isLoading(), { timeout: MAX_WAIT_MS, interval: 80 });
+
+  // 5) espera o DOM dos resultados “parar de mexer”
+  await waitForDomQuiet(resultsContainerEl, { quietMs: DOM_QUIET_MS, timeout: MAX_WAIT_MS });
+}
+
+  // roda automaticamente ao carregar (se ON) com retry (SPA/Angular demora)
+  function __poInstallAutoFiltroOnLoad() {
+    if (window.__poAutoFiltroOnLoadInstalled) return;
+    window.__poAutoFiltroOnLoadInstalled = true;
+
+    const tryRun = async () => {
+      if (!loadAutoFiltro()) return;
+
+      // evita “duplo disparo” quando a extensão injeta mais de uma vez
+      const now = Date.now();
+      if (window.__poAutoFiltroLastRun && (now - window.__poAutoFiltroLastRun) < 2500) return;
+      window.__poAutoFiltroLastRun = now;
+
+      // tenta por ~20s (Angular pode demorar renderizar)
+      const t0 = performance.now();
+      while (performance.now() - t0 < 20000) {
+        const ok = await __poRunAutoFiltroHoje({ silent: true });
+        if (ok) return;
+        await wait(450);
+      }
+    };
+
+    window.addEventListener("load", () => {
+      setTimeout(tryRun, 400);
+    }, { once: true });
+
+    // se o script já entrou depois do load
+    if (document.readyState === "complete") {
+      setTimeout(tryRun, 400);
+    }
+  }
+
+  // instala já
+  __poInstallAutoFiltroOnLoad();
+
+  // =======================
   // ✅ UTIL: normalização de texto (ÚNICA)
   // =======================
+
   function _norm(s) {
     return (s || "")
       .toString()
@@ -167,6 +395,7 @@
   // =======================
   // FONT & LAYOUT
   // =======================
+
   function applyFont(px) {
     const v = clamp(Math.round(px), FONT_MIN, FONT_MAX);
     document.documentElement.style.setProperty("--po-table-font", `${v}px`);
@@ -298,6 +527,7 @@
   // ============================================
   // ✅ PAINEL PRINCIPAL RESIZABLE (inferior esquerdo)
   // ============================================
+
   function loadPanelSize() {
     const v = loadJSON(STORAGE_KEY_PANEL_SIZE, null);
     if (!v || typeof v !== "object") return { w: null, h: null };
@@ -450,6 +680,7 @@
   // ============================================
   // TURBO LOADER (AUTO EXPAND) - LIXEIRA/DIÁRIO
   // ============================================
+
   async function startSmartAutoExpand() {
     if (localStorage.getItem(STORAGE_KEY_EXPAND) !== "true") return;
 
@@ -540,6 +771,7 @@
   // ============================================
   // ✅ TABELA DIÁRIO (para lixeira) - mantém igual
   // ============================================
+
   function getArchiveTable() {
     const tables = Array.from(document.querySelectorAll(TABLE_SELECTOR));
     if (!tables.length) return null;
@@ -564,6 +796,7 @@
   // =========================================================
   // ✅ NOTAS — TABELA + PAINEL (separado, inferior direito)
   // =========================================================
+
   function __poNotasPanelHiddenLoad() {
     return localStorage.getItem(STORAGE_KEY_NOTAS_PANEL_HIDDEN) === "1";
   }
@@ -627,6 +860,7 @@
   }
 
   // ✅ coleta tabelas no document + iframes (same-origin)
+
   function __poCollectTablesDeep(selectors = ["table.po-table", "po-table table", "table"]) {
     const out = [];
     const visited = new Set();
@@ -857,6 +1091,7 @@
   // =========================================================
   // ✅ XLSX (EXPORT) — gerador ZIP correto (sem erro de extensão/formato)
   // =========================================================
+
   const __poTextEncoder = new TextEncoder();
 
   function __poU8(str) {
@@ -1173,6 +1408,7 @@
     // ---------------------------
     // 1) Tenta ler contexto por textos/labels (quando a tela tem "Turma:" / "Disciplina:")
     // ---------------------------
+    
     let text = "";
     try {
       const tRect = table.getBoundingClientRect();
@@ -2759,7 +2995,7 @@
           <input id="poFontRange" type="range" min="${FONT_MIN}" max="${FONT_MAX}" step="1" />
         </div>
 
-        <div class="small" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.2); padding-top:5px;">Layout</div>
+        <div class="small" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.2); padding-top:5px;"></div>
         <div class="row">
           <div style="display:flex; align-items:center; gap:5px;">
             <div class="small" id="poLockState">—</div>
@@ -2768,12 +3004,23 @@
 
         </div>
 
-        <div id="poHiddenList"></div>
+        <div class="small" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.2); padding-top:5px;"></div>
+        <div class="row">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div class="small" id="poAutoFiltroState">—</div>
+            <button class="btn" id="poAutoFiltroToggle" title="Executar automaticamente ao carregar">⚪</button>
+            <button class="btn" id="poAutoFiltroRun" title="Executar agora (preenche hoje + pesquisar)">▶</button>
+          </div>
+        </div>
 
-        <!-- ✅ Launcher Notas (aparece somente na tela de notas quando o painel foi fechado) -->
-        <div class="row" id="poNotasLauncherRow" style="display:none; margin-top:8px;">
+
+        <div id="poHiddenList"></div>
+        <div class="row" id="poNotasLauncherRow"
+            style="display:none; margin-top:8px; display:flex; align-items:left; gap:8px;">
+
           <button class="btn" id="poNotasLauncherBtn" title="Reabrir painel Notas (Excel)">📊</button>
-          <div class="small" style="opacity:.85;">Reabrir Notas</div>
+          <div class="medium" style="opacity:.85;">Painel Notas</div>
+
         </div>
 
         <!-- LIXEIRA (mantida) -->
@@ -2794,6 +3041,24 @@
         </div>
       </div>
     `;
+
+
+       // ✅ Auto Filtro (toggle + executar agora)
+    panel.querySelector("#poAutoFiltroToggle").addEventListener("click", async () => {
+      const next = !loadAutoFiltro();
+      saveAutoFiltro(next);
+      updateAutoFiltroUI();
+
+      // se acabou de ligar, já executa uma vez agora
+      if (next) {
+        await __poRunAutoFiltroHoje({ silent: true });
+      }
+    });
+
+    panel.querySelector("#poAutoFiltroRun").addEventListener("click", async () => {
+      await __poRunAutoFiltroHoje({ silent: false });
+    });
+ 
 
     document.body.appendChild(panel);
 
@@ -2871,6 +3136,8 @@
     updateLockUI();
     applyFont(loadFontPx());
     renderArchivedListInPanel();
+    updateAutoFiltroUI();
+
 
     // atualiza o launcher assim que o painel principal existir
     __poNotasPanelAutoToggle();
@@ -3303,7 +3570,7 @@
     statusBtn.textContent = `${count} réplicas realizadas!`;
     setTimeout(() => {
       statusBtn.disabled = false;
-      statusBtn.textContent = "Replicar Realizados";
+      statusBtn.textContent = "Replicar em Cascata (Dia)";
     }, 2000);
   }
 
@@ -3785,5 +4052,3 @@
     }
   });
 })();
-
-

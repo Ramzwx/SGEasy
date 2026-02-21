@@ -1399,176 +1399,163 @@ async function triggerSearchSafely({ inputEl, searchBtnEl, resultsContainerEl })
     setTimeout(() => URL.revokeObjectURL(url), 3000);
   }
 
-  function __poGetNotasContext(table) {
-    const root = __poGetTableScopeRoot(table) || document;
-
-    let turma = "";
-    let disciplina = "";
-
-    // ---------------------------
-    // 1) Tenta ler contexto por textos/labels (quando a tela tem "Turma:" / "Disciplina:")
-    // ---------------------------
+function __poGetNotasContext(_tableIgnored) {
+  const root = document;
     
-    let text = "";
-    try {
-      const tRect = table.getBoundingClientRect();
-      const candidates = Array.from(
-        root.querySelectorAll("h1,h2,h3,h4,po-page-header,po-info,po-field-container,label,span,div")
-      );
 
-      const near = [];
-      for (const el of candidates) {
-        const s = (el.innerText || "").trim();
-        if (!s || s.length > 180) continue;
-        if (!/turma|disciplina|c[oó]d\.?\s*turma/i.test(s)) continue;
+  // Debug opcional:
+  // window.__poNotasDebug = true;
+  const DBG = !!window.__poNotasDebug;
 
-        const r = el.getBoundingClientRect();
-        if (r.bottom <= tRect.top + 30 && r.bottom >= -1500) {
-          near.push({ s, y: r.bottom });
-        }
-      }
-      near.sort((a, b) => b.y - a.y);
-      text = near.slice(0, 10).map((x) => x.s).join("\n");
-    } catch {
-      text = "";
+  let turma = "";
+  let disciplina = "";
+
+  // -------------------------------
+  // Helpers
+  // -------------------------------
+  const getText = (el) =>
+    (el?.innerText || el?.textContent || "")
+      .replace(/\u00A0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const isVisible = (el) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return false;
+    if (el.offsetParent === null && cs.position !== "fixed") return false;
+    return true;
+  };
+
+  // Regex do código de turma (ex.: AI-EME-01-M-26-13040)
+  const turmaReStrict = /([A-Z]{2,}-[A-Z]{2,}-\d{2}-[A-Z]-\d{2}-\d{3,})/;
+  const turmaReLoose = /([A-Z]{2,}(?:-[A-Z0-9]{1,}){3,})/;
+
+  const extractTurma = (s) => {
+    const m = (s || "").match(turmaReStrict) || (s || "").match(turmaReLoose);
+    return m && m[1] ? m[1].trim() : "";
+  };
+
+  // -------------------------------
+  // 1) Encontra a TABELA CERTA pelo header do PO-UI
+  //    (obrigatório ter "cód. turma" e "disciplina")
+  // -------------------------------
+  const tables = Array.from(root.querySelectorAll("table.po-table"));
+  let ctxTable = null;
+
+  const hasTH = (tbl, colName) =>
+    !!tbl.querySelector(`th[data-po-table-column-name="${colName}"]`);
+
+  for (const t of tables) {
+    if (!isVisible(t)) continue;
+    if (hasTH(t, "cód. turma") && hasTH(t, "disciplina")) {
+      ctxTable = t;
+      break;
     }
-
-    const turmaMatch =
-      text.match(/c[oó]d\.?\s*turma\s*[:\-]?\s*([A-Za-z0-9._-]+)/i) ||
-      text.match(/turma\s*[:\-]?\s*([A-Za-z0-9._-]+)/i);
-
-    const discMatch =
-      text.match(/disciplina\s*[:\-]?\s*([^\n\r]{3,80})/i) ||
-      text.match(/componente\s*curricular\s*[:\-]?\s*([^\n\r]{3,80})/i);
-
-    turma = turmaMatch ? (turmaMatch[1] || "").trim() : "";
-    disciplina = discMatch ? (discMatch[1] || "").trim() : "";
-
-    // ---------------------------
-    // 2) Fallback (se a tela NÃO tem labels):
-    //    Procura "células" acima da tabela com:
-    //    - código de turma no padrão AI-EME-01-M-26-13040
-    //    - nome da disciplina (texto longo com letras)
-    // ---------------------------
-    if (!turma || !disciplina) {
-      try {
-        const tRect = table.getBoundingClientRect();
-
-        const isVisible = (el) => {
-          if (!el) return false;
-          const r = el.getBoundingClientRect();
-          if (r.width <= 0 || r.height <= 0) return false;
-          // offsetParent null em elementos invisíveis (não é perfeito, mas ajuda)
-          if (el.offsetParent === null && getComputedStyle(el).position !== "fixed") return false;
-          return true;
-        };
-
-        const getText = (el) =>
-          (el.innerText || el.textContent || "")
-            .replace(/\s+/g, " ")
-            .replace(/\u00A0/g, " ")
-            .trim();
-
-        // tenta pegar principalmente as "cells" do PO-UI
-        const cells = Array.from(
-          root.querySelectorAll(".po-table-column-cell.po-table-body-ellipsis, .po-table-column-cell")
-        );
-
-        const nearCells = [];
-        for (const el of cells) {
-          if (!isVisible(el)) continue;
-          const r = el.getBoundingClientRect();
-
-          // apenas elementos ACIMA da tabela de notas e relativamente próximos
-          const above = r.bottom <= tRect.top + 40;
-          const closeEnough = r.bottom >= tRect.top - 900; // janela maior pra telas variadas
-
-          if (!above || !closeEnough) continue;
-
-          const s = getText(el);
-          if (!s || s.length > 140) continue;
-
-          nearCells.push({ s, r });
-        }
-
-        // ordena do mais perto do topo da tabela (mais provável ser contexto)
-        nearCells.sort((a, b) => b.r.bottom - a.r.bottom);
-
-        // regex do código de turma (exemplo: AI-EME-01-M-26-13040)
-        const turmaReStrict = /([A-Z]{2,}-[A-Z]{2,}-\d{2}-[A-Z]-\d{2}-\d{3,})/;
-        // fallback mais permissivo (caso mude um pouco o padrão)
-        const turmaReLoose = /([A-Z]{2,}(?:-[A-Z0-9]{1,}){3,})/;
-
-        if (!turma) {
-          for (const it of nearCells) {
-            const m = it.s.match(turmaReStrict) || it.s.match(turmaReLoose);
-            if (m && m[1]) {
-              turma = m[1].trim();
-              break;
-            }
-          }
-        }
-
-        if (!disciplina) {
-          const isMostlyText = (s) => {
-            if (!s) return false;
-            if (turmaReStrict.test(s) || turmaReLoose.test(s)) return false;
-            if (/^\d+[.,]?\d*$/.test(s)) return false; // só número
-            // precisa ter letras
-            const letters = (s.match(/[A-Za-zÀ-ÿ]/g) || []).length;
-            if (letters < 6) return false;
-            // evita nomes muito curtos tipo "M1"
-            if (s.length < 8) return false;
-            return true;
-          };
-
-          const scoreDisc = (s) => {
-            const words = s.split(/\s+/).filter(Boolean);
-            let score = 0;
-            score += Math.min(s.length, 80);
-            score += words.length >= 2 ? 25 : 0;
-            score += /[À-ÿ]/.test(s) ? 5 : 0;
-            // se tem palavra típica (ajuda no seu caso)
-            score += /fundamentos|comunica|informa|matem|eletric|mec[aâ]nic|automa/i.test(s) ? 10 : 0;
-            return score;
-          };
-
-          let best = "";
-          let bestScore = -1;
-
-          for (const it of nearCells) {
-            const s = it.s;
-            if (!isMostlyText(s)) continue;
-            const sc = scoreDisc(s);
-            if (sc > bestScore) {
-              bestScore = sc;
-              best = s;
-            }
-          }
-
-          disciplina = best || "";
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    // limpeza final
-    turma = (turma || "").trim();
-    disciplina = (disciplina || "").trim();
-
-    // corta "Curso" ou "Turma" colado
-    disciplina = disciplina.replace(/\bcurso\b.*$/i, "").replace(/\bturma\b.*$/i, "").trim();
-
-    return { turma, disciplina };
   }
 
-  function __poMakeNotasFilename(table) {
-    const ctx = __poGetNotasContext(table);
-    const turmaPart = ctx.turma ? __poSafeFilePart(ctx.turma, 22) : "SEM_TURMA";
-    const discPart = ctx.disciplina ? __poSafeFilePart(ctx.disciplina, 28) : "SEM_DISCIPLINA";
-    return `Notas_${turmaPart}_${discPart}_${__poNowStamp()}.xlsx`;
+  // fallback: às vezes pode vir sem acento (raro), então tenta variações
+  if (!ctxTable) {
+    for (const t of tables) {
+      if (!isVisible(t)) continue;
+      const okTurma =
+        hasTH(t, "cód. turma") || hasTH(t, "cod. turma") || hasTH(t, "codigo turma") || hasTH(t, "cód turma");
+      const okDisc =
+        hasTH(t, "disciplina") || hasTH(t, "componente curricular");
+
+      if (okTurma && okDisc) {
+        ctxTable = t;
+        break;
+      }
+    }
   }
+
+  if (DBG) console.debug("[poNotas] ctxTable", ctxTable);
+
+  if (!ctxTable) {
+    // Não achou a tabela “de contexto” => retorna vazio (SEM inventar aluno)
+    return { turma: "", disciplina: "" };
+  }
+
+  // -------------------------------
+  // 2) Descobre os índices das colunas pelo TH (ordem na linha do header)
+  // -------------------------------
+  const headerRow = ctxTable.querySelector("thead tr") || ctxTable.querySelector("tr");
+  const ths = headerRow ? Array.from(headerRow.querySelectorAll("th")) : [];
+
+  const idxByColName = (wanted) => {
+    for (let i = 0; i < ths.length; i++) {
+      const th = ths[i];
+      const col = (th.getAttribute("data-po-table-column-name") || "").trim().toLowerCase();
+      if (col === wanted) return i;
+    }
+    return -1;
+  };
+
+  // tenta primeiro exatamente
+  let idxTurma = idxByColName("cód. turma");
+  let idxDisc = idxByColName("disciplina");
+
+  // fallback sem acento / variações
+  if (idxTurma < 0) {
+    idxTurma =
+      idxByColName("cod. turma") >= 0 ? idxByColName("cod. turma")
+      : idxByColName("cód turma") >= 0 ? idxByColName("cód turma")
+      : idxByColName("codigo turma");
+  }
+  if (idxDisc < 0) {
+    idxDisc =
+      idxByColName("componente curricular") >= 0 ? idxByColName("componente curricular") : -1;
+  }
+
+  if (DBG) console.debug("[poNotas] idx", { idxTurma, idxDisc, thsLen: ths.length });
+
+  // -------------------------------
+  // 3) Pega a primeira linha (TR) com TDs no tbody e lê os valores reais
+  // -------------------------------
+  const tbody = ctxTable.querySelector("tbody") || ctxTable;
+  const firstRow = Array.from(tbody.querySelectorAll("tr"))
+    .find((tr) => tr.querySelectorAll("td").length > 0 && isVisible(tr));
+
+  if (!firstRow) {
+    return { turma: "", disciplina: "" };
+  }
+
+  const tds = Array.from(firstRow.querySelectorAll("td"));
+
+  if (idxTurma >= 0 && tds[idxTurma]) {
+    turma = extractTurma(getText(tds[idxTurma]));
+  }
+
+  if (idxDisc >= 0 && tds[idxDisc]) {
+    disciplina = getText(tds[idxDisc]).trim();
+  }
+
+  // limpeza final
+  turma = (turma || "").trim();
+  disciplina = (disciplina || "").trim();
+
+  // evita sujeira tipo "Curso ..." colado
+  disciplina = disciplina
+    .replace(/\bcurso\b.*$/i, "")
+    .replace(/\bturma\b.*$/i, "")
+    .trim();
+
+  if (DBG) console.debug("[poNotas] ctx result", { turma, disciplina });
+
+  return { turma, disciplina };
+}
+
+function __poMakeNotasFilename(table) {
+  const ctx = __poGetNotasContext(table);
+
+  const turmaPart = ctx.turma ? __poSafeFilePart(ctx.turma, 22) : "SEM_TURMA";
+  const discPart = ctx.disciplina ? __poSafeFilePart(ctx.disciplina, 28) : "SEM_DISCIPLINA";
+
+  return `Notas_${turmaPart}_${discPart}_${__poNowStamp()}.xlsx`;
+}
 
   // =========================================================
   // ✅ XLSX (IMPORT) — leitor sem biblioteca (ZIP + XML)

@@ -917,639 +917,31 @@ async function triggerSearchSafely({ inputEl, searchBtnEl, resultsContainerEl })
     );
 
     const gradeHints = [
-      [
-  // =========================
-  // Gerais (nota / média / pontos)
-  // =========================
-  "nota",
-  "notas",
-  "nota final",
-  "nota parcial",
-  "nota total",
-  "media",
-  "média",
-  "media final",
-  "média final",
-  "media parcial",
-  "média parcial",
-  "media geral",
-  "média geral",
-  "pontuacao",
-  "pontuação",
-  "pontos",
-  "pontuacao final",
-  "pontuação final",
-  "total de pontos",
-  "resultado",
-  "desempenho",
-
-  // =========================
-  // Avaliações / Provas
-  // =========================
-  "avaliacao",
-  "avaliação",
-  "avaliacao 1",
-  "avaliação 1",
-  "avaliacao 2",
-  "avaliação 2",
-  "avaliacao 3",
-  "avaliação 3",
-  "avaliacao 4",
-  "avaliação 4",
-  "avaliacao bimestral",
-  "avaliação bimestral",
-  "avaliacao trimestral",
-  "avaliação trimestral",
-  "avaliacao semestral",
-  "avaliação semestral",
-  "avaliacao final",
-  "avaliação final",
-  "avaliacao diagnóstica",
-  "avaliacao diagnostica",
-  "avaliação diagnóstica",
-  "avaliação diagnostica",
-
-  "prova",
-  "prova 1",
-  "prova 2",
-  "prova 3",
-  "prova 4",
-  "prova 5",
-  "prova final",
-  "prova bimestral",
-  "prova trimestral",
-  "prova semestral",
-  "prova mensal",
-  "prova substitutiva",
-  "prova suplementar",
-  "prova de reposicao",
-  "prova de reposição",
-  "prova 2 chamada",
-  "prova segunda chamada",
-  "prova 1a chamada",
-  "prova 2a chamada",
-  "teste",
-  "teste 1",
-  "teste 2",
-  "teste 3",
-  "teste 4",
-  "teste surpresa",
-  "simulado",
-  "simulado 1",
-  "simulado 2",
-  "simulado final",
-  "exame",
-  "exame final",
-
-  // Siglas comuns
-  "av",
-  "av1",
-  "av2",
-  "av3",
-  "av4",
-  "av5",
-  "aval",
-  "aval 1",
-  "aval 2",
-  "aval 3",
-  "aval 4",
-  "avaliacao 01",
-  "avaliacao 02",
-  "avaliacao 03",
-  "avaliacao 04",
-  "prova 01",
-  "prova 02",
-  "prova 03",
-  "prova 04",
-
-  // =========================
-  // Recuperação / Reforço
-  // =========================
-  "recuperacao",
-  "recuperação",
-  "rec",
-  "rec 1",
-  "rec 2",
-  "rec final",
-  "recuperacao final",
-  "recuperação final",
-  "recuperacao parcial",
-  "recuperação parcial",
-  "recuperacao bimestral",
-  "recuperação bimestral",
-  "recuperacao trimestral",
-  "recuperação trimestral",
-  "substitutiva",
-  "sub",
-  "reposicao",
-  "reposição",
-  "reavaliacao",
-  "reavaliação",
-  "segunda chamada",
-  "2 chamada",
-  "2a chamada",
-
-  // =========================
-  // Trabalhos / Projetos / Relatórios
-  // =========================
-  "trabalho",
-  "trabalho 1",
-  "trabalho 2",
-  "trabalho 3",
-  "trabalho 4",
-  "trabalho final",
-  "trabalho em grupo",
-  "trabalho individual",
-  "atividade",
-  "atividade 1",
-  "atividade 2",
-  "atividade 3",
-  "atividade 4",
-  "atividade 5",
-  "atividade avaliativa",
-  "atividade avaliativa 1",
-  "atividade avaliativa 2",
-  "atividade avaliativa 3",
-  "atividade avaliativa 4",
-  "tarefa",
-  "tarefa 1",
-  "tarefa 2",
-  "tarefa 3",
-  "tarefa 4",
-  "lista",
-  "lista 1",
-  "lista 2",
-  "lista 3",
-  "lista 4",
-  "lista de exercicios",
-  "lista de exercícios",
-  "exercicios",
-  "exercícios",
-  "exercicio",
-  "exercício",
-  "questionario",
-  "questionário",
-  "questionario 1",
-  "questionário 1",
-  "questionario 2",
-  "questionário 2",
-  "relatorio",
-  "relatório",
-  "relatorio 1",
-  "relatório 1",
-  "relatorio 2",
-  "relatório 2",
-  "relatorio final",
-  "relatório final",
-  "pesquisa",
-  "pesquisa 1",
-  "pesquisa 2",
-  "projeto",
-  "projeto 1",
-  "projeto 2",
-  "projeto final",
-  "mini projeto",
-  "miniprojeto",
-  "seminario",
-  "seminário",
-  "apresentacao",
-  "apresentação",
-  "apresentacao oral",
-  "apresentação oral",
-  "portifolio",
-  "portfólio",
-  "portifolio final",
-  "portfólio final",
-  "estudo de caso",
-  "case",
-  "case 1",
-  "case 2",
-
-  // =========================
-  // Práticas / Laboratório / Oficina
-  // =========================
-  "pratica",
-  "prática",
-  "praticas",
-  "práticas",
-  "atividade pratica",
-  "atividade prática",
-  "atividades praticas",
-  "atividades práticas",
-  "avaliacao pratica",
-  "avaliação prática",
-  "prova pratica",
-  "prova prática",
-  "teste pratico",
-  "teste prático",
-  "laboratorio",
-  "laboratório",
-  "atividade de laboratorio",
-  "atividade de laboratório",
-  "pratica de laboratorio",
-  "prática de laboratório",
-  "roteiro de pratica",
-  "roteiro de prática",
-  "roteiro pratico",
-  "roteiro prático",
-  "checklist",
-  "check list",
-  "checklist pratico",
-  "checklist prático",
-  "oficina",
-  "oficina pratica",
-  "oficina prática",
-  "aula pratica",
-  "aula prática",
-  "desafio prático",
-  "desafio pratico",
-  "montagem",
-  "montagem pratica",
-  "montagem prática",
-  "bancada",
-  "atividade de bancada",
-  "ensaio",
-  "ensaio prático",
-  "ensaio pratico",
-  "experimento",
-  "experimento prático",
-  "experimento pratico",
-
-  // =========================
-  // Participação / Frequência / Comportamento
-  // =========================
-  "participacao",
-  "participação",
-  "participacao em sala",
-  "participação em sala",
-  "presenca",
-  "presença",
-  "frequencia",
-  "frequência",
-  "engajamento",
-  "postura",
-  "comportamento",
-  "empenho",
-  "pontualidade",
-
-  // =========================
-  // Entrega / Prazo / Produção
-  // =========================
-  "entrega",
-  "entrega 1",
-  "entrega 2",
-  "entrega 3",
-  "entrega final",
-  "prazo",
-  "atividades entregues",
-  "producao",
-  "produção",
-  "producao final",
-  "produção final",
-
-  // =========================
-  // Notações curtas (N/A)
-  // =========================
-  "n1",
-  "n2",
-  "n3",
-  "n4",
-  "n5",
-  "a1",
-  "a2",
-  "a3",
-  "a4",
-  "a5",
-  "p1",
-  "p2",
-  "p3",
-  "p4",
-  "t1",
-  "t2",
-  "t3",
-  "t4",
-  "ap1",
-  "ap2",
-  "ap3",
-  "ap4",
-
-  // =========================
-  // Extras comuns em escolas/cursos
-  // =========================
-  "atividades complementares",
-  "atividade complementar",
-  "prova online",
-  "avaliacao online",
-  "avaliação online",
-  "atividade online",
-  "atividade em sala",
-  "atividade em casa",
-  "dever",
-  "dever de casa",
-  "trabalho de casa",
-  "prova teorica",
-  "prova teórica",
-  "avaliacao teorica",
-  "avaliação teórica",
-  "teste teorico",
-  "teste teórico",
-  "teoria",
-  "pratica e teoria",
-  "prática e teoria",
-  "conceito",
-  "conceito final",
-  "nota bimestre",
-  "nota bimestre 1",
-  "nota bimestre 2",
-  "nota bimestre 3",
-  "nota bimestre 4",
-  "bimestre 1",
-  "bimestre 2",
-  "bimestre 3",
-  "bimestre 4",
-  "trimestre 1",
-  "trimestre 2",
-  "trimestre 3",
-  "semestre 1",
-  "semestre 2",
-  // =========================
-  // Apresentações / Oratória
-  // =========================
-  "seminario",
-  "seminário",
-  "seminario 1",
-  "seminário 1",
-  "seminario 2",
-  "seminário 2",
-  "seminario final",
-  "seminário final",
-  "apresentacao",
-  "apresentação",
-  "apresentacao oral",
-  "apresentação oral",
-  "pitch",
-  "pitch 1",
-  "pitch 2",
-  "pitch final",
-  "defesa",
-  "defesa do projeto",
-  "banca",
-  "banca avaliativa",
-  "banca final",
-  "mostra",
-  "mostra tecnica",
-  "mostra técnica",
-  "feira",
-  "feira de ciencias",
-  "feira de ciências",
-  "congresso",
-  "congresso interno",
-
-  // =========================
-  // Projetos / Produtos
-  // =========================
-  "projeto",
-  "projeto 1",
-  "projeto 2",
-  "projeto 3",
-  "projeto final",
-  "projeto integrador",
-  "projeto integrador 1",
-  "projeto integrador 2",
-  "mini projeto",
-  "miniprojeto",
-  "desenvolvimento de projeto",
-  "prototipo",
-  "protótipo",
-  "prototipo 1",
-  "protótipo 1",
-  "prototipo final",
-  "protótipo final",
-  "mvp",
-  "produto",
-  "produto final",
-  "solucao",
-  "solução",
-  "solucao final",
-  "solução final",
-  "modelagem",
-  "modelagem 3d",
-  "desenho tecnico",
-  "desenho técnico",
-  "planta",
-  "diagrama",
-  "diagrama eletrico",
-  "diagrama elétrico",
-  "esquema",
-  "esquema eletrico",
-  "esquema elétrico",
-  "memorial descritivo",
-
-  // =========================
-  // Pesquisa / Escrita
-  // =========================
-  "pesquisa",
-  "pesquisa 1",
-  "pesquisa 2",
-  "pesquisa de campo",
-  "pesquisa bibliografica",
-  "pesquisa bibliográfica",
-  "artigo",
-  "artigo 1",
-  "artigo final",
-  "resumo",
-  "resumo expandido",
-  "fichamento",
-  "resenha",
-  "relatorio",
-  "relatório",
-  "relatorio tecnico",
-  "relatório técnico",
-  "relatorio de visita",
-  "relatório de visita",
-  "relatorio de pratica",
-  "relatório de prática",
-  "estudo de caso",
-  "case",
-  "case 1",
-  "case 2",
-  "mapa mental",
-  "linha do tempo",
-  "diario de bordo",
-  "diário de bordo",
-
-  // =========================
-  // Atividades práticas / Laboratório / Oficina
-  // =========================
-  "atividade pratica",
-  "atividade prática",
-  "aula pratica",
-  "aula prática",
-  "pratica",
-  "prática",
-  "laboratorio",
-  "laboratório",
-  "atividade de laboratorio",
-  "atividade de laboratório",
-  "oficina",
-  "oficina pratica",
-  "oficina prática",
-  "projeto de bancada",
-  "montagem",
-  "montagem de painel",
-  "montagem eletrica",
-  "montagem elétrica",
-  "instalacao",
-  "instalação",
-  "instalacao eletrica",
-  "instalação elétrica",
-  "comissionamento",
-  "comissionamento de sistema",
-  "teste de bancada",
-  "ensaio",
-  "experimento",
-  "simulacao",
-  "simulação",
-  "simulacao no fluidsim",
-  "simulação no fluidsim",
-  "simulacao no cade simu",
-  "simulação no cade simu",
-  "programacao de clp",
-  "programação de clp",
-  "programacao ladder",
-  "programação ladder",
-
-  // =========================
-  // Visitas / Vivências / Campo
-  // =========================
-  "visita tecnica",
-  "visita técnica",
-  "visita tecnica 1",
-  "visita técnica 1",
-  "visita tecnica 2",
-  "visita técnica 2",
-  "visita a empresa",
-  "visita industrial",
-  "atividade de campo",
-  "aula de campo",
-  "observacao em campo",
-  "observação em campo",
-  "estudo do meio",
-  "saida de campo",
-  "saída de campo",
-  "tour tecnico",
-  "tour técnico",
-
-  // =========================
-  // Avaliações de desempenho / Processo
-  // =========================
-  "rubrica",
-  "rúbrica",
-  "avaliacao por rubrica",
-  "avaliação por rúbrica",
-  "avaliacao de desempenho",
-  "avaliação de desempenho",
-  "avaliacao de processo",
-  "avaliação de processo",
-  "avaliacao diagnostica",
-  "avaliação diagnóstica",
-  "autoavaliacao",
-  "autoavaliação",
-  "heteroavaliacao",
-  "heteroavaliação",
-  "avaliacao por pares",
-  "avaliação por pares",
-  "feedback",
-  "devolutiva",
-
-  // =========================
-  // Dinâmicas / Desafios / Gamificação
-  // =========================
-  "dinamica",
-  "dinâmica",
-  "dinamica em grupo",
-  "dinâmica em grupo",
-  "desafio",
-  "desafio 1",
-  "desafio 2",
-  "desafio final",
-  "desafio pratico",
-  "desafio prático",
-  "competicao",
-  "competição",
-  "competicao interna",
-  "competição interna",
-  "hackathon",
-  "maratona",
-  "gincana",
-  "missao",
-  "missão",
-
-  // =========================
-  // Reuniões / Marcos / Entregas
-  // =========================
-  "kickoff",
-  "reuniao",
-  "reunião",
-  "reuniao de alinhamento",
-  "reunião de alinhamento",
-  "checkpoint",
-  "check-in",
-  "checkin",
-  "revisao",
-  "revisão",
-  "revisao 1",
-  "revisão 1",
-  "revisao 2",
-  "revisão 2",
-  "entrega",
-  "entrega parcial",
-  "entrega final",
-  "marco",
-  "marco 1",
-  "marco 2",
-
-  // =========================
-  // Materiais / Produções
-  // =========================
-  "poster",
-  "pôster",
-  "banner",
-  "banner tecnico",
-  "banner técnico",
-  "video",
-  "vídeo",
-  "video aula",
-  "vídeo aula",
-  "podcast",
-  "manual",
-  "manual tecnico",
-  "manual técnico",
-  "tutorial",
-  "apresentacao em slides",
-  "apresentação em slides",
-  "slide",
-  "slides",
-  "documentacao",
-  "documentação",
-
-  // =========================
-  // Termos comuns extras
-  // =========================
-  "atividade integradora",
-  "atividade interdisciplinar",
-  "projeto interdisciplinar",
-  "desafio integrador",
-  "pratica supervisionada",
-  "prática supervisionada",
-  "atividade supervisionada",
-  "atividade extraclasse",
-  "atividade extra classe",
-  "trabalho de conclusao",
-  "trabalho de conclusão",
-  "tcc",
-]
-
+      "nota",
+      "notas",
+      "media",
+      "média",
+      "avaliacao",
+      "avaliação",
+      "prova",
+      "trabalho",
+      "pontuacao",
+      "pontuação",
+      "pontos",
+      "final",
+      "n1",
+      "n2",
+      "n3",
+      "n4",
+      "a1",
+      "a2",
+      "a3",
+      "a4",
+      "av1",
+      "av2",
+      "recuperacao",
+      "recuperação",
+      "rec",
     ];
 
     const hasGradeHeader = headers.some((h) => gradeHints.includes(h) || gradeHints.some((k) => h.includes(k)));
@@ -3015,154 +2407,709 @@ async function triggerSearchSafely({ inputEl, searchBtnEl, resultsContainerEl })
   // =========================================================
   // ✅ APPLY NOTAS — versão robusta (corrige o erro de schema/td undefined)
   // =========================================================
-    async function __poApplyNotasToTable(imported, setStatusFn) {
-    try {
-      const table = __poGetNotasTable();
-      if (!table) return { ok: false, msg: "Tabela de notas não encontrada nesta tela." };
+   //AQUII
 
-      // ✅ garante que todas as linhas estejam carregadas antes de mapear
-      if (setStatusFn) setStatusFn("Carregando todas as linhas da tabela...");
-      await __poExpandAllRowsForNotasTable(table, null, null);
+   async function __poApplyNotasToTable(imported, setStatusFn) {
+  // ============================================================
+  // ✅ NOVO: Mapeamento inteligente por "apelidos" (aliases)
+  // - tenta bater por nome direto (como antes)
+  // - se falhar, tenta:
+  //   (1) número (A1/AV1/N1/ Avaliação 1 etc.)
+  //   (2) categoria (prática, seminário, projeto, etc.) -> Avaliação 1..4 / N1..N4
+  //   (3) fallback por ordem nas colunas de nota ainda livres
+  // ============================================================
+  const gradeHints = [
+    "nota",
+    "notas",
+    "media",
+    "média",
+    "avaliacao",
+    "avaliação",
+    "prova",
+    "trabalho",
+    "pontuacao",
+    "pontuação",
+    "pontos",
+    "final",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "a1",
+    "a2",
+    "a3",
+    "a4",
+    "av1",
+    "av2",
+    "av3",
+    "av4",
+    "recuperacao",
+    "recuperação",
+    "rec",
+  ].map((x) => _norm(x));
 
-      const schema = __poGetTableSchema(table);
-      if (!schema) return { ok: false, msg: "Não consegui ler a estrutura (thead) da tabela de notas." };
+  // Preferência de "slot" quando a coluna do arquivo tem um nome livre
+  // (ajuste se quiser: prática -> 2, projeto -> 1, etc.)
+  const CATEGORY_SLOT_PREF = {
+    projeto: 1,
+    pratica: 2,
+    apresentacao: 3,
+    pesquisa: 4,
+    visita: 4,
+    desempenho: 4,
+    dinamica: 4,
+    marcos: 4,
+    materiais: 4,
+    extras: 4,
+  };
 
-      const headersNorm = (imported.headers || []).map((h) => _norm(h));
-      const keyIdxImported = __poFindKeyColumnIndex(headersNorm);
-      const keyIdxSchema = __poFindKeyColumnIndexInSchema(schema);
+  // Palavras/expressões (você pode expandir livremente)
+  // ⚠️ Dica: pode colocar sua lista gigante aqui que a função normaliza e "limpa" final/números.
+  const RAW_KEYWORDS_BY_CATEGORY = {
+    // =========================
+    // Apresentações / Oratória
+    // =========================
+    apresentacao: [
+      "seminario",
+      "seminário",
+      "seminario 1",
+      "seminário 1",
+      "seminario 2",
+      "seminário 2",
+      "seminario final",
+      "seminário final",
+      "apresentacao",
+      "apresentação",
+      "apresentacao oral",
+      "apresentação oral",
+      "pitch",
+      "pitch 1",
+      "pitch 2",
+      "pitch final",
+      "defesa",
+      "defesa do projeto",
+      "banca",
+      "banca avaliativa",
+      "banca final",
+      "mostra",
+      "mostra tecnica",
+      "mostra técnica",
+      "feira",
+      "feira de ciencias",
+      "feira de ciências",
+      "congresso",
+      "congresso interno",
+    ],
 
-      const schemaNames = schema.map((c) => c.label || c.key || "");
-      const colMap = new Map(); // importedIdx => schemaIdx
+    // =========================
+    // Projetos / Produtos
+    // =========================
+    projeto: [
+      "projeto",
+      "projeto 1",
+      "projeto 2",
+      "projeto 3",
+      "projeto final",
+      "projeto integrador",
+      "projeto integrador 1",
+      "projeto integrador 2",
+      "mini projeto",
+      "miniprojeto",
+      "desenvolvimento de projeto",
+      "prototipo",
+      "protótipo",
+      "prototipo 1",
+      "protótipo 1",
+      "prototipo final",
+      "protótipo final",
+      "mvp",
+      "produto",
+      "produto final",
+      "solucao",
+      "solução",
+      "solucao final",
+      "solução final",
+      "modelagem",
+      "modelagem 3d",
+      "desenho tecnico",
+      "desenho técnico",
+      "planta",
+      "diagrama",
+      "diagrama eletrico",
+      "diagrama elétrico",
+      "esquema",
+      "esquema eletrico",
+      "esquema elétrico",
+      "memorial descritivo",
+    ],
 
-      for (let i = 0; i < headersNorm.length; i++) {
-        if (i === keyIdxImported) continue;
-        const h = headersNorm[i];
-        if (!h) continue;
+    // =========================
+    // Pesquisa / Escrita
+    // =========================
+    pesquisa: [
+      "pesquisa",
+      "pesquisa 1",
+      "pesquisa 2",
+      "pesquisa de campo",
+      "pesquisa bibliografica",
+      "pesquisa bibliográfica",
+      "artigo",
+      "artigo 1",
+      "artigo final",
+      "resumo",
+      "resumo expandido",
+      "fichamento",
+      "resenha",
+      "relatorio",
+      "relatório",
+      "relatorio tecnico",
+      "relatório técnico",
+      "relatorio de visita",
+      "relatório de visita",
+      "relatorio de pratica",
+      "relatório de prática",
+      "estudo de caso",
+      "case",
+      "case 1",
+      "case 2",
+      "mapa mental",
+      "linha do tempo",
+      "diario de bordo",
+      "diário de bordo",
+    ],
 
-        let si = schemaNames.findIndex((n) => n === h || (n && h && (n.includes(h) || h.includes(n))));
-        if (si < 0) si = schemaNames.findIndex((n) => (n || "").replace(/\s/g, "") === h.replace(/\s/g, ""));
-        if (si >= 0) colMap.set(i, si);
+    // =========================
+    // Atividades práticas / Laboratório / Oficina
+    // =========================
+    pratica: [
+      "atividade pratica",
+      "atividade prática",
+      "aula pratica",
+      "aula prática",
+      "pratica",
+      "prática",
+      "laboratorio",
+      "laboratório",
+      "atividade de laboratorio",
+      "atividade de laboratório",
+      "oficina",
+      "oficina pratica",
+      "oficina prática",
+      "projeto de bancada",
+      "montagem",
+      "montagem de painel",
+      "montagem eletrica",
+      "montagem elétrica",
+      "instalacao",
+      "instalação",
+      "instalacao eletrica",
+      "instalação elétrica",
+      "comissionamento",
+      "comissionamento de sistema",
+      "teste de bancada",
+      "ensaio",
+      "experimento",
+      "simulacao",
+      "simulação",
+      "simulacao no fluidsim",
+      "simulação no fluidsim",
+      "simulacao no cade simu",
+      "simulação no cade simu",
+      "programacao de clp",
+      "programação de clp",
+      "programacao ladder",
+      "programação ladder",
+      "avaliacao pratica",
+      "avaliação prática",
+    ],
+
+    // =========================
+    // Visitas / Campo
+    // =========================
+    visita: [
+      "visita tecnica",
+      "visita técnica",
+      "visita a empresa",
+      "visita industrial",
+      "atividade de campo",
+      "aula de campo",
+      "observacao em campo",
+      "observação em campo",
+      "estudo do meio",
+      "saida de campo",
+      "saída de campo",
+      "tour tecnico",
+      "tour técnico",
+    ],
+
+    // =========================
+    // Avaliação de desempenho / Processo
+    // =========================
+    desempenho: [
+      "rubrica",
+      "rúbrica",
+      "avaliacao por rubrica",
+      "avaliação por rúbrica",
+      "avaliacao de desempenho",
+      "avaliação de desempenho",
+      "avaliacao de processo",
+      "avaliação de processo",
+      "avaliacao diagnostica",
+      "avaliação diagnóstica",
+      "autoavaliacao",
+      "autoavaliação",
+      "heteroavaliacao",
+      "heteroavaliação",
+      "avaliacao por pares",
+      "avaliação por pares",
+      "feedback",
+      "devolutiva",
+    ],
+
+    // =========================
+    // Dinâmicas / Desafios / Gamificação
+    // =========================
+    dinamica: [
+      "dinamica",
+      "dinâmica",
+      "dinamica em grupo",
+      "dinâmica em grupo",
+      "desafio",
+      "desafio pratico",
+      "desafio prático",
+      "competicao",
+      "competição",
+      "hackathon",
+      "maratona",
+      "gincana",
+      "missao",
+      "missão",
+    ],
+
+    // =========================
+    // Reuniões / Marcos / Entregas
+    // =========================
+    marcos: ["kickoff", "checkpoint", "check-in", "checkin", "entrega", "marco", "marco 1", "marco 2"],
+
+    // =========================
+    // Materiais / Produções
+    // =========================
+    materiais: [
+      "poster",
+      "pôster",
+      "banner",
+      "video",
+      "vídeo",
+      "podcast",
+      "manual",
+      "manual tecnico",
+      "manual técnico",
+      "tutorial",
+      "apresentacao em slides",
+      "apresentação em slides",
+      "slide",
+      "slides",
+      "documentacao",
+      "documentação",
+    ],
+
+    // =========================
+    // Termos comuns extras
+    // =========================
+    extras: [
+      "atividade integradora",
+      "atividade interdisciplinar",
+      "projeto interdisciplinar",
+      "desafio integrador",
+      "pratica supervisionada",
+      "prática supervisionada",
+      "atividade supervisionada",
+      "atividade extraclasse",
+      "atividade extra classe",
+      "trabalho de conclusao",
+      "trabalho de conclusão",
+      "tcc",
+    ],
+  };
+
+  function _cleanKw(raw) {
+    // normaliza, remove números soltos e "final" no fim (pra evitar match genérico)
+    let s = _norm(raw || "");
+    s = s
+      .replace(/\b\d+\b/g, " ")
+      .replace(/\bfinal\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return s;
+  }
+
+  function _buildKwSets() {
+    const out = {};
+    for (const [cat, arr] of Object.entries(RAW_KEYWORDS_BY_CATEGORY)) {
+      const set = new Set();
+      for (const x of arr || []) {
+        const k = _cleanKw(x);
+        if (!k) continue;
+        // evita termos extremamente curtos (reduz falso positivo)
+        if (k.length < 3) continue;
+        set.add(k);
+      }
+      out[cat] = Array.from(set);
+    }
+    return out;
+  }
+
+  const KEYWORDS_BY_CATEGORY = _buildKwSets();
+
+  function _detectCategory(headerNorm) {
+    // escolhe a categoria com maior "match" (pelo tamanho do termo que casou)
+    let bestCat = null;
+    let bestScore = 0;
+
+    for (const [cat, kws] of Object.entries(KEYWORDS_BY_CATEGORY)) {
+      let localBest = 0;
+      for (const kw of kws) {
+        if (!kw) continue;
+        if (headerNorm.includes(kw)) {
+          // quanto maior o termo, mais confiável
+          if (kw.length > localBest) localBest = kw.length;
+        }
+      }
+      if (localBest > bestScore) {
+        bestScore = localBest;
+        bestCat = cat;
+      }
+    }
+
+    // limiar mínimo pra evitar match por acaso
+    if (bestScore < 4) return null;
+    return bestCat;
+  }
+
+  function _extractSlotFromHeader(hNorm) {
+    // pega N1 / A2 / AV3 etc.
+    let m = hNorm.match(/(?:^|\b)(?:n|a|av)\s*0*([1-9]\d*)\b/);
+    if (m) return parseInt(m[1], 10);
+
+    // pega "avaliacao 1", "avaliação 2", "prova 3" etc.
+    m = hNorm.match(/\b(?:avaliacao|avaliação|av|prova|trabalho|atividade)\s*0*([1-9]\d*)\b/);
+    if (m) return parseInt(m[1], 10);
+
+    return null;
+  }
+
+  function _isLikelyGradeSchemaCol(nameNorm) {
+    if (!nameNorm) return false;
+    if (gradeHints.some((k) => nameNorm === k || nameNorm.includes(k))) return true;
+    if (/^(?:n|a|av)\s*\d+$/.test(nameNorm)) return true;
+    return false;
+  }
+
+  function _schemaNameNorm(schemaCol) {
+    // schemaCol.label e schemaCol.key já vêm normalizados em __poGetTableSchema,
+    // mas garantimos
+    const a = _norm(schemaCol?.labelRaw || "");
+    const b = _norm(schemaCol?.label || "");
+    const c = _norm(schemaCol?.key || "");
+    // escolhe o "melhor" (mais informativo)
+    return b || c || a;
+  }
+
+  function _matchSchemaIndexByHeader(schemaOrder, schemaNamesNorm, hNorm) {
+    // 1) match exato
+    let si = schemaOrder.find((idx) => schemaNamesNorm[idx] === hNorm);
+    if (si !== undefined) return si;
+
+    // 2) includes (mais flexível)
+    si = schemaOrder.find((idx) => {
+      const n = schemaNamesNorm[idx];
+      return n && hNorm && (n.includes(hNorm) || hNorm.includes(n));
+    });
+    if (si !== undefined) return si;
+
+    // 3) ignora espaços
+    const hNoSp = (hNorm || "").replace(/\s/g, "");
+    si = schemaOrder.find((idx) => (schemaNamesNorm[idx] || "").replace(/\s/g, "") === hNoSp);
+    if (si !== undefined) return si;
+
+    return -1;
+  }
+
+  function _findSchemaIndexForSlot(schemaOrder, schemaNamesNorm, slot, usedSchema) {
+    if (!slot || !Number.isFinite(slot)) return -1;
+
+    const slotStr = String(slot);
+    const slotReStrong = new RegExp(`(?:^|\\b)(?:n|a|av)\\s*0*${slotStr}(?:\\b|$)`);
+    const slotReAval = new RegExp(`\\b(?:avaliacao|avaliação|av)\\s*0*${slotStr}\\b`);
+
+    // tenta primeiro colunas "de nota" não usadas
+    for (const idx of schemaOrder) {
+      if (usedSchema.has(idx)) continue;
+      const n = schemaNamesNorm[idx] || "";
+      if (slotReStrong.test(n) || slotReAval.test(n)) return idx;
+    }
+
+    // depois aceita usadas? (evita duplicar, então não)
+    return -1;
+  }
+
+  function _getNextFreeGradeCol(schemaGradeOrder, usedSchema) {
+    for (const idx of schemaGradeOrder) {
+      if (!usedSchema.has(idx)) return idx;
+    }
+    return -1;
+  }
+
+  // ============================================================
+  // ✅ Execução principal
+  // ============================================================
+  try {
+    const table = __poGetNotasTable();
+    if (!table) return { ok: false, msg: "Tabela de notas não encontrada nesta tela." };
+
+    // ✅ garante que todas as linhas estejam carregadas antes de mapear
+    if (setStatusFn) setStatusFn("Carregando todas as linhas da tabela...");
+    await __poExpandAllRowsForNotasTable(table, null, null);
+
+    const schema = __poGetTableSchema(table);
+    if (!schema) return { ok: false, msg: "Não consegui ler a estrutura (thead) da tabela de notas." };
+
+    const headersNorm = (imported.headers || []).map((h) => _norm(h));
+    const keyIdxImported = __poFindKeyColumnIndex(headersNorm);
+    const keyIdxSchema = __poFindKeyColumnIndexInSchema(schema);
+
+    if (keyIdxImported == null || keyIdxImported < 0) {
+      return {
+        ok: false,
+        msg:
+          "Não encontrei a coluna-chave (RA/Matrícula/Nome) no arquivo.\n" +
+          "Dica: inclua uma coluna 'RA' ou 'Matrícula' (ou 'Aluno') na primeira linha.",
+      };
+    }
+
+    if (keyIdxSchema == null || keyIdxSchema < 0) {
+      return {
+        ok: false,
+        msg:
+          "Não consegui identificar a coluna-chave (RA/Matrícula/Nome) na tabela desta tela.\n" +
+          "Talvez esta não seja a tela certa de lançamento de notas.",
+      };
+    }
+
+    // Ordem das colunas na tela (esquerda->direita)
+    const schemaOrder = schema
+      .map((c, si) => ({ si, tdIdx: typeof c?.idx === "number" ? c.idx : 999999 }))
+      .sort((a, b) => a.tdIdx - b.tdIdx)
+      .map((x) => x.si);
+
+    // Nome normalizado de cada coluna da tela
+    const schemaNamesNorm = schema.map((c) => _schemaNameNorm(c));
+
+    // Colunas "prováveis de nota" na tela (exclui a chave)
+    const schemaGradeOrder = schemaOrder.filter((si) => si !== keyIdxSchema && _isLikelyGradeSchemaCol(schemaNamesNorm[si]));
+
+    const colMap = new Map(); // importedIdx => schemaIdx
+    const usedSchema = new Set();
+
+    // Helper: marca schema usada
+    function _useSchema(si) {
+      if (si == null || si < 0) return;
+      usedSchema.add(si);
+    }
+
+    // 1) mapeamento por nome direto / número / categoria
+    for (let i = 0; i < headersNorm.length; i++) {
+      if (i === keyIdxImported) continue;
+      const hNorm = headersNorm[i];
+      if (!hNorm) continue;
+
+      // (A) tenta bater por nome direto com a tela
+      let si = _matchSchemaIndexByHeader(schemaOrder, schemaNamesNorm, hNorm);
+      if (si >= 0 && si !== keyIdxSchema && !usedSchema.has(si)) {
+        colMap.set(i, si);
+        _useSchema(si);
+        continue;
       }
 
-      if (colMap.size === 0) {
-        return {
-          ok: false,
-          msg:
-            "Não consegui mapear colunas do arquivo para a tabela.\n" +
-            "Dica: mantenha os títulos da primeira linha iguais aos títulos da tela (ex.: N1, N2, Média, etc.).",
-        };
+      // (B) tenta pelo número (A1/AV2/N3/ Avaliação 4 etc.)
+      const slotFromHeader = _extractSlotFromHeader(hNorm);
+      if (slotFromHeader) {
+        si = _findSchemaIndexForSlot(schemaOrder, schemaNamesNorm, slotFromHeader, usedSchema);
+        if (si >= 0 && si !== keyIdxSchema) {
+          colMap.set(i, si);
+          _useSchema(si);
+          continue;
+        }
       }
 
-      // ✅ ordena pelas colunas da TABELA (simula tabulação esquerda->direita)
-      const colPairs = Array.from(colMap.entries())
-        .map(([impColIdx, schemaIdx]) => {
-          const col = schema[schemaIdx];
-          return {
-            impColIdx,
-            schemaIdx,
-            tdIdx: col && typeof col.idx === "number" ? col.idx : 999999,
-          };
-        })
-        .filter((p) => Number.isFinite(p.tdIdx))
-        .sort((a, b) => a.tdIdx - b.tdIdx);
+      // (C) tenta por categoria (ex.: "avaliacao pratica" -> pratica -> slot preferido)
+      const cat = _detectCategory(hNorm);
+      if (cat) {
+        const prefSlot = CATEGORY_SLOT_PREF[cat] || null;
 
-      let rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
-
-      let totalValidKeys = 0;
-      let matchedRows = 0;
-      let writtenCells = 0;
-      let failedCells = 0;
-
-      for (let r = 0; r < imported.data.length; r++) {
-        const row = imported.data[r] || [];
-        const keyRaw = (row[keyIdxImported] ?? "").toString();
-        const key = _norm(keyRaw);
-        if (!key) continue;
-
-        totalValidKeys++;
-
-        let tr = rowMap.get(key);
-        if (!tr) {
-          const looseKey = __poFindRowKeyLoose(rowMap, key);
-          if (looseKey) tr = rowMap.get(looseKey);
-        }
-
-        // se o DOM reciclou (virtual scroll), refaz o mapa e tenta de novo
-        if (tr && !tr.isConnected) tr = null;
-        if (!tr) {
-          rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
-          tr = rowMap.get(key);
-          if (!tr) {
-            const looseKey2 = __poFindRowKeyLoose(rowMap, key);
-            if (looseKey2) tr = rowMap.get(looseKey2);
-          }
-        }
-
-        if (!tr) continue;
-
-        matchedRows++;
-
-        try {
-          tr.scrollIntoView({ block: "center" });
-        } catch {}
-        await wait(25);
-
-        // sempre pega os tds "ao vivo" (reduz efeito de DOM reciclado)
-        let tds = Array.from(tr.querySelectorAll("td"));
-        if (!tds.length) continue;
-
-        for (let pi = 0; pi < colPairs.length; pi++) {
-          const { impColIdx, schemaIdx } = colPairs[pi];
-          const col = schema[schemaIdx];
-          const td = tds[col.idx];
-
-          if (!td) {
-            failedCells++;
+        // tenta achar a coluna do slot preferido primeiro
+        if (prefSlot) {
+          si = _findSchemaIndexForSlot(schemaOrder, schemaNamesNorm, prefSlot, usedSchema);
+          if (si >= 0 && si !== keyIdxSchema) {
+            colMap.set(i, si);
+            _useSchema(si);
             continue;
           }
-
-          // nextTd para simular TAB real (foco muda, blur confirma)
-          const nextPair = colPairs[pi + 1];
-          const nextTd = nextPair ? tds[schema[nextPair.schemaIdx].idx] : null;
-
-          const val = (row[impColIdx] ?? "").toString();
-
-          const ok = await __poSetCellValue(td, val, { nextTd });
-
-          if (ok) writtenCells++;
-          else failedCells++;
-
-          // pequeno respiro p/ UI
-          if ((writtenCells + failedCells) % 10 === 0) await wait(20);
         }
 
-        // fecha edição no fim da linha (garante commit do último campo)
-        try { document.body.click(); } catch {}
-        await wait(30);
-
-        if (setStatusFn && r % 6 === 0) {
-          setStatusFn(
-            `Importando...\nLinhas: ${r + 1}/${imported.data.length}\nEncontradas na tela: ${matchedRows}\nCélulas escritas: ${writtenCells}\nFalhas: ${failedCells}`
-          );
-          await wait(10);
+        // se não achou pelo slot, pega a próxima coluna de nota livre (fallback inteligente)
+        si = _getNextFreeGradeCol(schemaGradeOrder, usedSchema);
+        if (si >= 0 && si !== keyIdxSchema) {
+          colMap.set(i, si);
+          _useSchema(si);
+          continue;
         }
       }
 
-      return {
-        ok: true,
-        msg:
-          `Import concluído ✅\n` +
-          `Linhas no arquivo: ${imported.data.length}\n` +
-          `Linhas com chave válida: ${totalValidKeys}\n` +
-          `Linhas encontradas na tela: ${matchedRows}\n` +
-          `Células escritas: ${writtenCells}\n` +
-          `Falhas: ${failedCells}\n\n` +
-          `Obs: falha aqui significa: não conseguiu confirmar (dirty/highlight) ou não encontrou input editável.`,
-      };
-    } catch (e) {
-      return { ok: false, msg: "Erro ao importar: " + (e?.message || e) };
+      // (D) ainda não mapeou: deixa pro fallback por ordem mais abaixo
     }
+
+    // 2) fallback final por ordem (qualquer nome de coluna vira "próxima nota livre")
+    //    - só para colunas do arquivo que ainda não foram mapeadas
+    //    - só usa colunas da tela consideradas "nota"
+    const importedLeft = [];
+    for (let i = 0; i < headersNorm.length; i++) {
+      if (i === keyIdxImported) continue;
+      if (!headersNorm[i]) continue;
+      if (!colMap.has(i)) importedLeft.push(i);
+    }
+
+    if (importedLeft.length) {
+      for (const impIdx of importedLeft) {
+        const nextSi = _getNextFreeGradeCol(schemaGradeOrder, usedSchema);
+        if (nextSi < 0) break;
+        colMap.set(impIdx, nextSi);
+        _useSchema(nextSi);
+      }
+    }
+
+    if (colMap.size === 0) {
+      return {
+        ok: false,
+        msg:
+          "Não consegui mapear colunas do arquivo para a tabela.\n" +
+          "Dica: inclua a coluna de chave (RA/Matrícula) e pelo menos uma coluna de nota.\n" +
+          "Se a tela usar N1/N2/N3/N4, deixe 4 colunas de nota no arquivo (nomes livres também funcionam).",
+      };
+    }
+
+    // ✅ ordena pelas colunas da TABELA (simula tabulação esquerda->direita)
+    const colPairs = Array.from(colMap.entries())
+      .map(([impColIdx, schemaIdx]) => {
+        const col = schema[schemaIdx];
+        return {
+          impColIdx,
+          schemaIdx,
+          tdIdx: col && typeof col.idx === "number" ? col.idx : 999999,
+        };
+      })
+      .filter((p) => Number.isFinite(p.tdIdx))
+      .sort((a, b) => a.tdIdx - b.tdIdx);
+
+    let rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
+
+    let totalValidKeys = 0;
+    let matchedRows = 0;
+    let writtenCells = 0;
+    let failedCells = 0;
+
+    for (let r = 0; r < imported.data.length; r++) {
+      const row = imported.data[r] || [];
+      const keyRaw = (row[keyIdxImported] ?? "").toString();
+      const key = _norm(keyRaw);
+      if (!key) continue;
+
+      totalValidKeys++;
+
+      let tr = rowMap.get(key);
+      if (!tr) {
+        const looseKey = __poFindRowKeyLoose(rowMap, key);
+        if (looseKey) tr = rowMap.get(looseKey);
+      }
+
+      // se o DOM reciclou (virtual scroll), refaz o mapa e tenta de novo
+      if (tr && !tr.isConnected) tr = null;
+      if (!tr) {
+        rowMap = __poBuildRowMapByKey(table, schema, keyIdxSchema);
+        tr = rowMap.get(key);
+        if (!tr) {
+          const looseKey2 = __poFindRowKeyLoose(rowMap, key);
+          if (looseKey2) tr = rowMap.get(looseKey2);
+        }
+      }
+
+      if (!tr) continue;
+
+      matchedRows++;
+
+      try {
+        tr.scrollIntoView({ block: "center" });
+      } catch {}
+      await wait(25);
+
+      // sempre pega os tds "ao vivo" (reduz efeito de DOM reciclado)
+      let tds = Array.from(tr.querySelectorAll("td"));
+      if (!tds.length) continue;
+
+      for (let pi = 0; pi < colPairs.length; pi++) {
+        const { impColIdx, schemaIdx } = colPairs[pi];
+        const col = schema[schemaIdx];
+        const td = tds[col.idx];
+
+        if (!td) {
+          failedCells++;
+          continue;
+        }
+
+        // nextTd para simular TAB real (foco muda, blur confirma)
+        const nextPair = colPairs[pi + 1];
+        const nextTd = nextPair ? tds[schema[nextPair.schemaIdx].idx] : null;
+
+        const val = (row[impColIdx] ?? "").toString();
+
+        const ok = await __poSetCellValue(td, val, { nextTd });
+
+        if (ok) writtenCells++;
+        else failedCells++;
+
+        // pequeno respiro p/ UI
+        if ((writtenCells + failedCells) % 10 === 0) await wait(20);
+      }
+
+      // fecha edição no fim da linha (garante commit do último campo)
+      try {
+        document.body.click();
+      } catch {}
+      await wait(30);
+
+      if (setStatusFn && r % 6 === 0) {
+        setStatusFn(
+          `Importando...\nLinhas: ${r + 1}/${imported.data.length}\nEncontradas na tela: ${matchedRows}\nCélulas escritas: ${writtenCells}\nFalhas: ${failedCells}`
+        );
+        await wait(10);
+      }
+    }
+
+    return {
+      ok: true,
+      msg:
+        `Import concluído ✅\n` +
+        `Linhas no arquivo: ${imported.data.length}\n` +
+        `Linhas com chave válida: ${totalValidKeys}\n` +
+        `Linhas encontradas na tela: ${matchedRows}\n` +
+        `Células escritas: ${writtenCells}\n` +
+        `Falhas: ${failedCells}\n\n` +
+        `Obs: falha aqui significa: não conseguiu confirmar (dirty/highlight) ou não encontrou input editável.`,
+    };
+  } catch (e) {
+    return { ok: false, msg: "Erro ao importar: " + (e?.message || e) };
   }
+}
 
   function __poRemoveNotasPanel() {
     const p = document.getElementById(PO_NOTAS_PANEL_ID);

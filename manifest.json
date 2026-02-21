@@ -1,7 +1,7 @@
 {
   "name": "SGEasy",
   "description": "Ajustes visuais para o Portal do Instrutor SENAI FIEMG",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "manifest_version": 3,
   "icons": {
     "16": "icon16.png",

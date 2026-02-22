@@ -91,7 +91,7 @@
     document.head.appendChild(st);
   }
 
-  __poInjectPopupZFixOnce();
+  __poInjectPopupZFixOnce(); 
 
 
   function loadWidths() {
@@ -3785,99 +3785,147 @@ function __poMakeNotasFilename(table) {
     return guide;
   }
   function installHeaderControls() {
-    const table = document.querySelector(TABLE_SELECTOR);
-    if (!table) return false;
+  // ❌ Tabelas que DEVEM ser excluídas (não receber botões/resizer/ocultar)
+  const EXCLUDED_TABLE_SELECTOR =
+    "table.po-table.po-table-interactive.po-table-selectable.po-table-striped.po-table-data-fixed-columns";
 
-    const ths = document.querySelectorAll(TH_SELECTOR);
-    const saved = loadWidths();
-    const hidden = loadHidden();
+  // Pega a tabela “alvo” do seu fluxo atual
+  const table = document.querySelector(TABLE_SELECTOR);
+  if (!table) return false;
 
-    ths.forEach((th) => {
-      const colName = th.getAttribute("data-po-table-column-name");
-      if (!colName) return;
+  // ✅ Se a tabela atual for a excluída, remove qualquer coisa já injetada nela e sai
+  if (table.matches(EXCLUDED_TABLE_SELECTOR)) {
+    // remove controles injetados (se existirem)
+    table.querySelectorAll(".po-col-hide-btn, .po-col-resizer").forEach((el) => el.remove());
 
-      if (saved[colName]) setThWidth(th, saved[colName]);
+    // remove classes de oculto só nessa tabela (caso tenha aplicado antes)
+    table.querySelectorAll(".po-col-hidden").forEach((el) => el.classList.remove("po-col-hidden"));
 
-      if (th.dataset.poHideInstalled !== "1") {
-        const btn = document.createElement("div");
-        btn.className = "po-col-hide-btn";
-        btn.textContent = hidden.has(colName) ? "🚫" : "👁";
-        btn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (loadHidden().has(colName)) unhideColumn(colName);
-          else hideColumn(colName);
-          renderHiddenList();
-        });
-        th.appendChild(btn);
-        th.dataset.poHideInstalled = "1";
-      }
-
-      if (th.dataset.poResizerInstalled !== "1") {
-        const handle = document.createElement("div");
-        handle.className = "po-col-resizer";
-        th.appendChild(handle);
-
-        handle.addEventListener("dblclick", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          autoFitColumn(th);
-        });
-
-        handle.addEventListener("pointerdown", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handle.setPointerCapture(e.pointerId);
-
-          const guide = getGuide();
-          const startX = e.clientX;
-          const startW = th.getBoundingClientRect().width;
-          const thLeft = th.getBoundingClientRect().left;
-
-          guide.style.display = "block";
-          guide.style.transform = `translateX(${e.clientX}px)`;
-          document.body.classList.add("po-resizing");
-
-          let finalW = startW;
-
-          const onMove = (ev) => {
-            const dx = ev.clientX - startX;
-            finalW = clamp(Math.round(startW + dx), MIN_W, MAX_W);
-            guide.style.transform = `translateX(${thLeft + finalW}px)`;
-          };
-
-          const onUp = () => {
-            document.removeEventListener("pointermove", onMove, true);
-            document.removeEventListener("pointerup", onUp, true);
-            document.body.classList.remove("po-resizing");
-            guide.style.display = "none";
-
-            setThWidth(th, finalW);
-            const map = loadWidths();
-            map[colName] = finalW;
-            saveWidths(map);
-            syncBoxWidthToColumns();
-          };
-
-          document.addEventListener("pointermove", onMove, true);
-          document.addEventListener("pointerup", onUp, true);
-        });
-
-        th.dataset.poResizerInstalled = "1";
-      }
+    // marca THs como “já instalado” para impedir reinjeção futura
+    table.querySelectorAll("thead th").forEach((th) => {
+      th.dataset.poHideInstalled = "1";
+      th.dataset.poResizerInstalled = "1";
     });
 
-    clearHiddenClasses();
-    applyHiddenState();
+    return false;
+  }
 
-    if (loadLock()) {
-      const sb = loadBoxWidth();
-      if (sb && sb > 0) setWrapperFixedWidth(sb);
-      else syncBoxWidthToColumns();
+  // ✅ A partir daqui mantém a funcionalidade original, mas ESCOPADA na tabela alvo
+  // (isso evita que TH_SELECTOR pegue headers de outras tabelas do DOM)
+  const ths = table.querySelectorAll(TH_SELECTOR);
+
+  const saved = loadWidths();
+  const hidden = loadHidden();
+
+  ths.forEach((th) => {
+    const colName = th.getAttribute("data-po-table-column-name");
+    if (!colName) return;
+
+    if (saved[colName]) setThWidth(th, saved[colName]);
+
+    if (th.dataset.poHideInstalled !== "1") {
+      const btn = document.createElement("div");
+      btn.className = "po-col-hide-btn";
+      btn.textContent = hidden.has(colName) ? "🚫" : "👁";
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (loadHidden().has(colName)) unhideColumn(colName);
+        else hideColumn(colName);
+        renderHiddenList();
+      });
+      th.appendChild(btn);
+      th.dataset.poHideInstalled = "1";
     }
 
-    return true;
+    if (th.dataset.poResizerInstalled !== "1") {
+      const handle = document.createElement("div");
+      handle.className = "po-col-resizer";
+      th.appendChild(handle);
+
+      handle.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        autoFitColumn(th);
+      });
+
+      handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handle.setPointerCapture(e.pointerId);
+
+        const guide = getGuide();
+        const startX = e.clientX;
+        const startW = th.getBoundingClientRect().width;
+        const thLeft = th.getBoundingClientRect().left;
+
+        guide.style.display = "block";
+        guide.style.transform = `translateX(${e.clientX}px)`;
+        document.body.classList.add("po-resizing");
+
+        let finalW = startW;
+
+        const onMove = (ev) => {
+          const dx = ev.clientX - startX;
+          finalW = clamp(Math.round(startW + dx), MIN_W, MAX_W);
+          guide.style.transform = `translateX(${thLeft + finalW}px)`;
+        };
+
+        const onUp = () => {
+          document.removeEventListener("pointermove", onMove, true);
+          document.removeEventListener("pointerup", onUp, true);
+          document.body.classList.remove("po-resizing");
+          guide.style.display = "none";
+
+          setThWidth(th, finalW);
+          const map = loadWidths();
+          map[colName] = finalW;
+          saveWidths(map);
+          syncBoxWidthToColumns();
+        };
+
+        document.addEventListener("pointermove", onMove, true);
+        document.addEventListener("pointerup", onUp, true);
+      });
+
+      th.dataset.poResizerInstalled = "1";
+    }
+  });
+
+  // ✅ Estado “hidden” só na tabela alvo (não mexe no resto do DOM)
+  // (mantém compatibilidade com sua implementação atual, mas evita vazamento)
+  table.querySelectorAll(".po-col-hidden").forEach((el) => el.classList.remove("po-col-hidden"));
+
+  // aplica ocultação apenas nessa tabela (mesma lógica do applyHiddenState, só que escopada)
+  {
+    const hiddenSet = loadHidden();
+    const thList = Array.from(table.querySelectorAll("thead th"));
+
+    hiddenSet.forEach((colName) => {
+      const th = table.querySelector(
+        `${TH_SELECTOR}[data-po-table-column-name="${CSS.escape(colName)}"]`
+      );
+      if (!th) return;
+
+      const idx = thList.indexOf(th);
+      if (idx < 0) return;
+
+      th.classList.add("po-col-hidden");
+      Array.from(table.querySelectorAll("tbody tr")).forEach((r) => {
+        const td = r.querySelectorAll("td")[idx];
+        if (td) td.classList.add("po-col-hidden");
+      });
+    });
   }
+
+  if (loadLock()) {
+    const sb = loadBoxWidth();
+    if (sb && sb > 0) setWrapperFixedWidth(sb);
+    else syncBoxWidthToColumns();
+  }
+
+  return true;
+}
 
   // =======================
   // AULAS INDICATORS (mantém igual)
